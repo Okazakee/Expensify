@@ -133,43 +133,18 @@ export const TransactionsProvider: React.FC<{children: React.ReactNode}> = ({ ch
 
   const loadPeriodData = async () => {
     try {
-      setIsLoading(true);
-
-      // Get period transactions using the current date range from PeriodContext
       const periodTransactions = await getTransactionsByDateRange(startDate, endDate);
-
-      // Sort transactions by date (newest first)
       const sortedTransactions = [...periodTransactions].sort((a, b) =>
         new Date(b.date).getTime() - new Date(a.date).getTime()
       );
 
       setCurrentPeriodTransactions(sortedTransactions);
-
-      // Calculate totals for this period
-      const expenseTotal = await getExpenseSummary(startDate, endDate);
-      const incomeTotal = await getIncomeSummary(startDate, endDate);
-      const netTotal = await getNetIncome(startDate, endDate);
-
-      setMonthlyTotal({
-        expenses: expenseTotal,
-        incomes: incomeTotal,
-        net: netTotal
-      });
-
-      // Get category totals for this period
-      const expenseTotals = await getTotalByCategory(startDate, endDate, 'expense');
-      const incomeTotals = await getTotalByCategory(startDate, endDate, 'income');
-
-      setCategoryTotals({
-        expenses: expenseTotals,
-        incomes: incomeTotals
-      });
+      setIsLoading(false);
     } catch (error) {
       console.error('Error loading period data:', error);
-    } finally {
       setIsLoading(false);
     }
-  };
+   };
 
   const refreshData = async () => {
     try {
