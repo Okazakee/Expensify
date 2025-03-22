@@ -45,11 +45,6 @@ const ExpenseListScreen = () => {
     });
   };
 
-  const handleAddExpense = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push('/add-expense');
-  };
-
   const handleClearFilters = () => {
     Haptics.selectionAsync();
     clearFilters();

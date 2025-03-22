@@ -34,16 +34,6 @@ const HomeScreen = () => {
     });
 };
 
-  const handleAddExpense = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push({ pathname: "/add-expense" });
-  };
-
-  const handleViewReports = () => {
-    Haptics.selectionAsync();
-    router.push({ pathname: "/reports" });
-  };
-
   const handleViewAllExpenses = () => {
     Haptics.selectionAsync();
     router.push({ pathname: "/expenses" });
@@ -82,23 +72,6 @@ const HomeScreen = () => {
       >
         {/* Budget Summary */}
         <Summary spent={monthlyTotal} />
-
-        {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          <TouchableOpacity style={styles.actionButton} onPress={handleAddExpense}>
-            <BlurView intensity={20} style={styles.actionButtonInner} tint="dark">
-              <Ionicons name="add-circle" size={24} color="#50E3C2" />
-              <Text style={styles.actionText}>Add Expense</Text>
-            </BlurView>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionButton} onPress={handleViewReports}>
-            <BlurView intensity={20} style={styles.actionButtonInner} tint="dark">
-              <Ionicons name="pie-chart" size={24} color="#5E5CE6" />
-              <Text style={styles.actionText}>Reports</Text>
-            </BlurView>
-          </TouchableOpacity>
-        </View>
 
         {/* Recent Expenses */}
         <View style={styles.sectionHeader}>
