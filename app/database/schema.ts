@@ -5,12 +5,13 @@ export interface Category {
   icon: string;
 }
 
-export interface Expense {
+export interface Transaction {
   id: string;
   amount: number;
   category: string;
   date: string;
   note: string;
+  isIncome: boolean; // Added this field
 }
 
 export interface RecurringTransaction {
@@ -39,13 +40,14 @@ export const CREATE_CATEGORIES_TABLE = `
   );
 `;
 
-export const CREATE_EXPENSES_TABLE = `
-  CREATE TABLE IF NOT EXISTS expenses (
+export const CREATE_TRANSACTIONS_TABLE = `
+  CREATE TABLE IF NOT EXISTS transactions (
     id TEXT PRIMARY KEY NOT NULL,
     amount REAL NOT NULL,
     category TEXT NOT NULL,
     date TEXT NOT NULL,
     note TEXT,
+    isIncome INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY (category) REFERENCES categories (id)
   );
 `;
@@ -68,7 +70,9 @@ export const CREATE_RECURRING_TRANSACTIONS_TABLE = `
   );
 `;
 
+// Add additional categories for income
 export const DEFAULT_CATEGORIES: Category[] = [
+  // Expense categories
   { id: 'food', name: 'Food', color: '#50E3C2', icon: 'fast-food' },
   { id: 'transport', name: 'Transportation', color: '#5E5CE6', icon: 'car' },
   { id: 'entertainment', name: 'Entertainment', color: '#FF6B6B', icon: 'film' },
@@ -76,13 +80,21 @@ export const DEFAULT_CATEGORIES: Category[] = [
   { id: 'utilities', name: 'Utilities', color: '#4DACF7', icon: 'flash' },
   { id: 'health', name: 'Health', color: '#FF9FB1', icon: 'medical' },
   { id: 'education', name: 'Education', color: '#A78BFA', icon: 'school' },
-  { id: 'other', name: 'Other', color: '#9CA3AF', icon: 'ellipsis-horizontal' }
+  { id: 'other', name: 'Other', color: '#9CA3AF', icon: 'ellipsis-horizontal' },
+
+  // Income categories
+  { id: 'salary', name: 'Salary', color: '#4CAF50', icon: 'cash' },
+  { id: 'freelance', name: 'Freelance', color: '#8BC34A', icon: 'briefcase' },
+  { id: 'investment', name: 'Investment', color: '#CDDC39', icon: 'trending-up' },
+  { id: 'gift', name: 'Gift', color: '#FFC107', icon: 'gift' },
+  { id: 'refund', name: 'Refund', color: '#FF9800', icon: 'return-down-back' },
+  { id: 'other_income', name: 'Other Income', color: '#9CCC65', icon: 'add-circle' }
 ];
 
 export default {
   DATABASE_NAME,
   CREATE_CATEGORIES_TABLE,
-  CREATE_EXPENSES_TABLE,
+  CREATE_TRANSACTIONS_TABLE,
   CREATE_RECURRING_TRANSACTIONS_TABLE,
   DEFAULT_CATEGORIES
 };

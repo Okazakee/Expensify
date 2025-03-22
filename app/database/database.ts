@@ -1,13 +1,13 @@
 import * as SQLite from 'expo-sqlite';
-import { 
-  DATABASE_NAME, 
-  CREATE_CATEGORIES_TABLE, 
-  CREATE_EXPENSES_TABLE, 
+import {
+  DATABASE_NAME,
+  CREATE_CATEGORIES_TABLE,
+  CREATE_TRANSACTIONS_TABLE,
   CREATE_RECURRING_TRANSACTIONS_TABLE,
-  DEFAULT_CATEGORIES, 
-  type Category, 
-  type Expense, 
-  type RecurringTransaction 
+  DEFAULT_CATEGORIES,
+  type Category,
+  type Transaction,
+  type RecurringTransaction
 } from './schema';
 
 const db = SQLite.openDatabaseSync(DATABASE_NAME);
@@ -42,14 +42,43 @@ const convertRecurringTransaction = (tx: RecurringTransactionDB): RecurringTrans
   active: Boolean(tx.active)
 });
 
+// Migration helper to add isIncome column to existing expenses table if needed
+const migrateDatabase = async (): Promise<void> => {
+  try {
+    // Check if the transactions table exists
+    const tableInfo = await db.getFirstAsync<{ name: string }>(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='transactions'"
+    );
+
+    if (!tableInfo) {
+      // If transactions table doesn't exist, we need to rename expenses to transactions
+      // and add the isIncome field
+      await db.execAsync(`
+        -- Rename expenses table to transactions
+        ALTER TABLE IF EXISTS expenses RENAME TO transactions;
+
+        -- Add isIncome column if it doesn't exist
+        ALTER TABLE transactions ADD COLUMN isIncome INTEGER NOT NULL DEFAULT 0;
+      `);
+      console.log('Migrated expenses table to transactions table with isIncome field');
+    }
+  } catch (error) {
+    console.error('Error during migration:', error);
+    // Continue with initialization even if migration fails
+  }
+};
+
 export const initDatabase = async (): Promise<void> => {
   try {
     await db.execAsync(`
       PRAGMA journal_mode = WAL;
       ${CREATE_CATEGORIES_TABLE}
-      ${CREATE_EXPENSES_TABLE}
+      ${CREATE_TRANSACTIONS_TABLE}
       ${CREATE_RECURRING_TRANSACTIONS_TABLE}
     `);
+
+    // Migrate existing data if needed
+    await migrateDatabase();
 
     const result = await db.getFirstAsync<{ count: number }>(
       'SELECT COUNT(*) AS count FROM categories'
@@ -83,109 +112,206 @@ export const getCategories = async (): Promise<Category[]> => {
   }
 };
 
-// Expense operations
-export const addExpense = async (expense: Omit<Expense, 'id'>): Promise<string> => {
+// Transaction operations (renamed from Expense operations)
+export const addTransaction = async (transaction: Omit<Transaction, 'id'>): Promise<string> => {
   const id = Date.now().toString();
   try {
     await db.runAsync(
-      'INSERT INTO expenses (id, amount, category, date, note) VALUES (?, ?, ?, ?, ?)',
-      [id, expense.amount, expense.category, expense.date, expense.note]
+      'INSERT INTO transactions (id, amount, category, date, note, isIncome) VALUES (?, ?, ?, ?, ?, ?)',
+      [id, transaction.amount, transaction.category, transaction.date, transaction.note, transaction.isIncome ? 1 : 0]
     );
     return id;
   } catch (error) {
-    console.error('Error adding expense:', error);
+    console.error('Error adding transaction:', error);
     throw error;
   }
 };
 
-export const getExpenses = async (): Promise<Expense[]> => {
+export const getTransactions = async (): Promise<Transaction[]> => {
   try {
-    return await db.getAllAsync<Expense>('SELECT * FROM expenses ORDER BY date DESC');
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    const transactions = await db.getAllAsync<any>('SELECT * FROM transactions ORDER BY date DESC');
+    return transactions.map(tx => ({
+      ...tx,
+      isIncome: Boolean(tx.isIncome)
+    }));
   } catch (error) {
-    console.error('Error fetching expenses:', error);
+    console.error('Error fetching transactions:', error);
     throw error;
   }
 };
 
-export const getExpensesByCategory = async (categoryId: string): Promise<Expense[]> => {
+export const getTransactionsByCategory = async (categoryId: string): Promise<Transaction[]> => {
   try {
-    return await db.getAllAsync<Expense>(
-      'SELECT * FROM expenses WHERE category = ? ORDER BY date DESC',
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    const transactions = await db.getAllAsync<any>(
+      'SELECT * FROM transactions WHERE category = ? ORDER BY date DESC',
       [categoryId]
     );
+    return transactions.map(tx => ({
+      ...tx,
+      isIncome: Boolean(tx.isIncome)
+    }));
   } catch (error) {
-    console.error('Error fetching expenses by category:', error);
+    console.error('Error fetching transactions by category:', error);
     throw error;
   }
 };
 
-export const getExpensesByDateRange = async (startDate: string, endDate: string): Promise<Expense[]> => {
+export const getTransactionsByDateRange = async (startDate: string, endDate: string): Promise<Transaction[]> => {
   try {
-    return await db.getAllAsync<Expense>(
-      'SELECT * FROM expenses WHERE date BETWEEN ? AND ? ORDER BY date DESC',
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    const transactions = await db.getAllAsync<any>(
+      'SELECT * FROM transactions WHERE date BETWEEN ? AND ? ORDER BY date DESC',
       [startDate, endDate]
     );
+    return transactions.map(tx => ({
+      ...tx,
+      isIncome: Boolean(tx.isIncome)
+    }));
   } catch (error) {
-    console.error('Error fetching expenses by date range:', error);
+    console.error('Error fetching transactions by date range:', error);
     throw error;
   }
 };
 
-export const updateExpense = async (expense: Expense): Promise<void> => {
+export const updateTransaction = async (transaction: Transaction): Promise<void> => {
   try {
     await db.runAsync(
-      'UPDATE expenses SET amount = ?, category = ?, date = ?, note = ? WHERE id = ?',
-      [expense.amount, expense.category, expense.date, expense.note, expense.id]
+      'UPDATE transactions SET amount = ?, category = ?, date = ?, note = ?, isIncome = ? WHERE id = ?',
+      [transaction.amount, transaction.category, transaction.date, transaction.note, transaction.isIncome ? 1 : 0, transaction.id]
     );
   } catch (error) {
-    console.error('Error updating expense:', error);
+    console.error('Error updating transaction:', error);
     throw error;
   }
 };
 
-export const deleteExpense = async (id: string): Promise<void> => {
+export const deleteTransaction = async (id: string): Promise<void> => {
   try {
-    await db.runAsync('DELETE FROM expenses WHERE id = ?', [id]);
+    await db.runAsync('DELETE FROM transactions WHERE id = ?', [id]);
   } catch (error) {
-    console.error('Error deleting expense:', error);
+    console.error('Error deleting transaction:', error);
     throw error;
   }
 };
 
 // Analytics queries
-export const getTotalExpensesByCategory = async (startDate?: string, endDate?: string): Promise<{categoryId: string, total: number}[]> => {
+export const getTotalByCategory = async (startDate?: string, endDate?: string, transactionType?: 'income' | 'expense'): Promise<{categoryId: string, total: number}[]> => {
   try {
+    let query = `
+      SELECT category AS categoryId, SUM(amount) AS total
+      FROM transactions
+      WHERE 1=1`;
+
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    const params: any[] = [];
+
     if (startDate && endDate) {
-      return await db.getAllAsync<{categoryId: string, total: number}>(
-        `SELECT category AS categoryId, SUM(amount) AS total 
-         FROM expenses 
-         WHERE date BETWEEN ? AND ? 
-         GROUP BY category`,
-        [startDate, endDate]
-      );
+      query += " AND date BETWEEN ? AND ?";
+      params.push(startDate, endDate);
     }
-    return await db.getAllAsync<{categoryId: string, total: number}>(
-      'SELECT category AS categoryId, SUM(amount) AS total FROM expenses GROUP BY category'
-    );
+
+    if (transactionType === 'income') {
+      query += " AND isIncome = 1";
+    } else if (transactionType === 'expense') {
+      query += " AND isIncome = 0";
+    }
+
+    query += " GROUP BY category";
+
+    return await db.getAllAsync<{categoryId: string, total: number}>(query, params);
   } catch (error) {
-    console.error('Error fetching total expenses by category:', error);
+    console.error('Error fetching total by category:', error);
     throw error;
   }
 };
 
-export const getMonthlyExpenses = async (year: number): Promise<{month: number, total: number}[]> => {
+export const getMonthlyTransactions = async (year: number, transactionType?: 'income' | 'expense'): Promise<{month: number, total: number}[]> => {
   try {
-    return await db.getAllAsync<{month: number, total: number}>(
-      `SELECT CAST(strftime('%m', date) AS INTEGER) AS month, 
-              SUM(amount) AS total 
-       FROM expenses 
-       WHERE strftime('%Y', date) = ? 
-       GROUP BY month 
-       ORDER BY month`,
-      [year.toString()]
-    );
+    let query = `
+      SELECT CAST(strftime('%m', date) AS INTEGER) AS month,
+             SUM(amount) AS total
+      FROM transactions
+      WHERE strftime('%Y', date) = ?`;
+
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    const params: any[] = [year.toString()];
+
+    if (transactionType === 'income') {
+      query += " AND isIncome = 1";
+    } else if (transactionType === 'expense') {
+      query += " AND isIncome = 0";
+    }
+
+    query += " GROUP BY month ORDER BY month";
+
+    return await db.getAllAsync<{month: number, total: number}>(query, params);
   } catch (error) {
-    console.error('Error fetching monthly expenses:', error);
+    console.error('Error fetching monthly transactions:', error);
+    throw error;
+  }
+};
+
+export const getIncomeSummary = async (startDate?: string, endDate?: string): Promise<number> => {
+  try {
+    let query = "SELECT SUM(amount) as total FROM transactions WHERE isIncome = 1";
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    const params: any[] = [];
+
+    if (startDate && endDate) {
+      query += " AND date BETWEEN ? AND ?";
+      params.push(startDate, endDate);
+    }
+
+    const result = await db.getFirstAsync<{total: number}>(query, params);
+    return result?.total || 0;
+  } catch (error) {
+    console.error('Error fetching income summary:', error);
+    throw error;
+  }
+};
+
+export const getExpenseSummary = async (startDate?: string, endDate?: string): Promise<number> => {
+  try {
+    let query = "SELECT SUM(amount) as total FROM transactions WHERE isIncome = 0";
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    const params: any[] = [];
+
+    if (startDate && endDate) {
+      query += " AND date BETWEEN ? AND ?";
+      params.push(startDate, endDate);
+    }
+
+    const result = await db.getFirstAsync<{total: number}>(query, params);
+    return result?.total || 0;
+  } catch (error) {
+    console.error('Error fetching expense summary:', error);
+    throw error;
+  }
+};
+
+export const getNetIncome = async (startDate?: string, endDate?: string): Promise<number> => {
+  try {
+    let query = `
+      SELECT
+        COALESCE(SUM(CASE WHEN isIncome = 1 THEN amount ELSE 0 END), 0) -
+        COALESCE(SUM(CASE WHEN isIncome = 0 THEN amount ELSE 0 END), 0) as netIncome
+      FROM transactions
+    `;
+
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    const params: any[] = [];
+
+    if (startDate && endDate) {
+      query += " WHERE date BETWEEN ? AND ?";
+      params.push(startDate, endDate);
+    }
+
+    const result = await db.getFirstAsync<{netIncome: number}>(query, params);
+    return result?.netIncome || 0;
+  } catch (error) {
+    console.error('Error calculating net income:', error);
     throw error;
   }
 };
@@ -223,7 +349,7 @@ export const addRecurringTransaction = async (
 
   try {
     await db.runAsync(
-      `INSERT INTO recurring_transactions 
+      `INSERT INTO recurring_transactions
        (id, amount, isIncome, note, category, recurrenceType, day, month, weekday, lastProcessed, nextDue, active)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -317,8 +443,8 @@ export const processRecurringTransactions = async (): Promise<void> => {
   try {
     const today = new Date().toISOString().split('T')[0];
     const dueTransactions = await db.getAllAsync<RecurringTransactionDB>(
-      `SELECT * FROM recurring_transactions 
-       WHERE active = 1 AND nextDue <= ? 
+      `SELECT * FROM recurring_transactions
+       WHERE active = 1 AND nextDue <= ?
        ORDER BY nextDue ASC`,
       [today]
     );
@@ -329,14 +455,14 @@ export const processRecurringTransactions = async (): Promise<void> => {
       for (const dbTx of dueTransactions) {
         const tx = convertRecurringTransaction(dbTx);
 
-        if (!tx.isIncome) {
-          await addExpense({
-            amount: tx.amount,
-            category: tx.category,
-            date: today,
-            note: `[Auto] ${tx.note}`
-          });
-        }
+        // Add the transaction (now handling both income and expenses)
+        await addTransaction({
+          amount: tx.amount,
+          category: tx.category,
+          date: today,
+          note: `[Auto] ${tx.note}`,
+          isIncome: tx.isIncome
+        });
 
         await updateRecurringTransaction({
           ...tx,
@@ -354,14 +480,17 @@ export const processRecurringTransactions = async (): Promise<void> => {
 export default {
   initDatabase,
   getCategories,
-  addExpense,
-  getExpenses,
-  getExpensesByCategory,
-  getExpensesByDateRange,
-  updateExpense,
-  deleteExpense,
-  getTotalExpensesByCategory,
-  getMonthlyExpenses,
+  addTransaction,
+  getTransactions,
+  getTransactionsByCategory,
+  getTransactionsByDateRange,
+  updateTransaction,
+  deleteTransaction,
+  getTotalByCategory,
+  getMonthlyTransactions,
+  getIncomeSummary,
+  getExpenseSummary,
+  getNetIncome,
   addRecurringTransaction,
   getRecurringTransactions,
   getRecurringTransactionById,
