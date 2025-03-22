@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+// app/screens/TransactionsScreen.tsx
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,40 +7,53 @@ import {
   TouchableOpacity,
   SafeAreaView,
   FlatList,
-  Alert
+  Alert,
+  RefreshControl
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { formatCurrency } from '../utils/currencyUtils';
 import TransactionEditor from '../components/TransactionEditor';
-
-// Define transaction type
-interface RecurringTransaction {
-  id: string;
-  amount: number;
-  note: string;
-  isIncome: boolean;
-  recurrenceType: 'monthly' | 'yearly' | 'weekly';
-  day?: number;
-  month?: number;
-  weekday?: number;
-}
-
-// Temporary mock data for recurring transactions
-const MOCK_TRANSACTIONS: RecurringTransaction[] = [
-  { id: '1', amount: 1200, note: 'Salary', isIncome: true, recurrenceType: 'monthly', day: 1 },
-  { id: '2', amount: 500, note: 'Rent', isIncome: false, recurrenceType: 'monthly', day: 15 },
-  { id: '3', amount: 3000, note: 'Bonus', isIncome: true, recurrenceType: 'yearly', month: 12, day: 15 },
-  { id: '4', amount: 200, note: 'Insurance', isIncome: false, recurrenceType: 'weekly', weekday: 1 },
-];
+import { useRecurringTransactions } from '../contexts/RecurringTransactionsContext';
+import { useExpenses } from '../contexts/ExpensesContext';
+import type { RecurringTransaction } from '../database/schema';
 
 const TransactionsScreen = () => {
   const router = useRouter();
-  const [transactions] = useState<RecurringTransaction[]>(MOCK_TRANSACTIONS);
+  const { transactions, isLoading, refreshTransactions, removeTransaction, processTransactions } = useRecurringTransactions();
+  const { categories } = useExpenses();
+
   const [showEditor, setShowEditor] = useState<boolean>(false);
   const [isAddingIncome, setIsAddingIncome] = useState<boolean>(true);
   const [selectedTransaction, setSelectedTransaction] = useState<RecurringTransaction | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Process recurring transactions when the screen loads
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+    useEffect(() => {
+    const checkAndProcessTransactions = async () => {
+      try {
+        await processTransactions();
+      } catch (error) {
+        console.error('Failed to process recurring transactions:', error);
+      }
+    };
+
+    checkAndProcessTransactions();
+  }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await processTransactions();
+      await refreshTransactions();
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleAddIncome = () => {
     setSelectedTransaction(null);
@@ -68,9 +82,13 @@ const TransactionsScreen = () => {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => {
-            // In a real app, would call a function to delete the transaction
-            console.log('Deleting transaction', id);
+          onPress: async () => {
+            try {
+              await removeTransaction(id);
+            } catch (error) {
+              console.error('Failed to delete transaction:', error);
+              Alert.alert('Error', 'Failed to delete transaction.');
+            }
           }
         }
       ]
@@ -82,6 +100,13 @@ const TransactionsScreen = () => {
     const iconColor = item.isIncome ? '#15E8FE' : '#FF6B6B';
     const amountPrefix = item.isIncome ? '+ ' : '- ';
     const amountColor = item.isIncome ? '#15E8FE' : '#FF6B6B';
+
+    // Get category name for expense transactions
+    let categoryName = '';
+    if (!item.isIncome && item.category) {
+      const category = categories.find(c => c.id === item.category);
+      if (category) categoryName = category.name;
+    }
 
     // Get recurrence text with details
     let recurrenceText = '';
@@ -103,13 +128,20 @@ const TransactionsScreen = () => {
         onPress={() => handleEditTransaction(item)}
       >
         <View style={styles.transactionIconContainer}>
-          {/* biome-ignore lint/suspicious/noExplicitAny: <explanation> */}
-          <Ionicons name={iconName as any} size={24} color={iconColor} />
+          <Ionicons name={iconName} size={24} color={iconColor} />
         </View>
 
         <View style={styles.transactionDetails}>
           <Text style={styles.transactionNote}>{item.note}</Text>
-          <Text style={styles.transactionRecurrence}>{recurrenceText}</Text>
+          <View style={styles.transactionMeta}>
+            <Text style={styles.transactionRecurrence}>{recurrenceText}</Text>
+            {!item.isIncome && categoryName && (
+              <Text style={styles.transactionCategory}>• {categoryName}</Text>
+            )}
+          </View>
+          {item.nextDue && (
+            <Text style={styles.nextDueDate}>Next due: {item.nextDue}</Text>
+          )}
         </View>
 
         <View style={styles.transactionAmount}>
@@ -171,12 +203,24 @@ const TransactionsScreen = () => {
         </View>
 
         <View style={styles.transactionListContainer}>
-          {transactions.length > 0 ? (
+          {isLoading ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>Loading transactions...</Text>
+            </View>
+          ) : transactions.length > 0 ? (
             <FlatList
               data={transactions}
               renderItem={renderTransactionItem}
               keyExtractor={(item) => item.id}
               showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={handleRefresh}
+                  tintColor="#15E8FE"
+                  colors={["#15E8FE"]}
+                />
+              }
             />
           ) : (
             <View style={styles.emptyContainer}>
@@ -279,9 +323,23 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginBottom: 4,
   },
+  transactionMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
   transactionRecurrence: {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.6)',
+  },
+  transactionCategory: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginLeft: 4,
+  },
+  nextDueDate: {
+    fontSize: 11,
+    color: 'rgba(21, 232, 254, 0.8)',
   },
   transactionAmount: {
     marginRight: 12,

@@ -1,3 +1,4 @@
+// app/components/TransactionEditor.tsx
 import type React from 'react';
 import { useState, useEffect } from 'react';
 import {
@@ -10,23 +11,14 @@ import {
   Alert,
   ScrollView
 } from 'react-native';
-
+import { useRecurringTransactions } from '../contexts/RecurringTransactionsContext';
+import { useExpenses } from '../contexts/ExpensesContext';
 import { formatCurrency, parseAmount } from '../utils/currencyUtils';
+import CategoryPicker from './CategoryPicker';
+import type { RecurringTransaction } from '../database/schema';
 
 // Transaction recurrence types
 type RecurrenceType = 'monthly' | 'yearly' | 'weekly';
-
-// Transaction interface
-interface RecurringTransaction {
-  id: string;
-  amount: number;
-  note: string;
-  isIncome: boolean;
-  recurrenceType: RecurrenceType;
-  day?: number;
-  month?: number;
-  weekday?: number;
-}
 
 interface TransactionEditorProps {
   isVisible: boolean;
@@ -41,9 +33,14 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
   isIncome = true,
   initialTransaction = null
 }) => {
+  const { addTransaction, updateTransaction } = useRecurringTransactions();
+  const { categories } = useExpenses();
+
   const [amount, setAmount] = useState<string>('');
   const [note, setNote] = useState<string>('');
   const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>('monthly');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // For monthly recurrence
   const [selectedDay, setSelectedDay] = useState<number>(1);
@@ -62,6 +59,7 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
       setAmount(initialTransaction.amount.toString());
       setNote(initialTransaction.note || '');
       setRecurrenceType(initialTransaction.recurrenceType || 'monthly');
+      setSelectedCategory(initialTransaction.category || null);
 
       if (initialTransaction.day) {
         setSelectedDay(initialTransaction.day);
@@ -84,26 +82,40 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
       setSelectedMonth(1);
       setSelectedYearlyDay(1);
       setSelectedWeekday(1);
+      setSelectedCategory(null);
     }
   }, [initialTransaction, isVisible]);
 
+  const validateForm = (): boolean => {
+    if (!amount || parseAmount(amount) <= 0) {
+      Alert.alert('Invalid Amount', 'Please enter a valid amount greater than zero.');
+      return false;
+    }
+
+    if (!isIncome && !selectedCategory) {
+      Alert.alert('Category Required', 'Please select a category for this expense.');
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSave = async () => {
+    if (!validateForm()) return;
+    
     try {
-      // Parse the input to get a numeric value
-      const parsedAmount = parseAmount(amount);
-
-      if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
-        Alert.alert('Invalid Amount', 'Please enter a valid amount greater than zero.');
-        return;
-      }
-
+      setIsSubmitting(true);
+      
       // Prepare transaction data based on recurrence type
-      const transactionData: RecurringTransaction = {
+      const parsedAmount = parseAmount(amount);
+      
+      const transactionData: Omit<RecurringTransaction, 'id' | 'lastProcessed' | 'nextDue'> = {
         amount: parsedAmount,
         note,
         recurrenceType,
         isIncome,
-        id: initialTransaction ? initialTransaction.id : Date.now().toString()
+        category: isIncome ? '' : selectedCategory || '',
+        active: true
       };
 
       // Add specific properties based on recurrence type
@@ -116,26 +128,35 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
         transactionData.weekday = selectedWeekday;
       }
 
-      console.log('Saving transaction', transactionData);
-
-      // In a real app, we would call a function to save the transaction
-      // If editing: updateTransaction(transactionData)
-      // If creating: addTransaction(transactionData)
+      if (initialTransaction) {
+        // Update existing transaction
+        await updateTransaction({
+          ...transactionData,
+          id: initialTransaction.id,
+          lastProcessed: initialTransaction.lastProcessed,
+          nextDue: initialTransaction.nextDue
+        });
+      } else {
+        // Create new transaction
+        await addTransaction(transactionData);
+      }
 
       // Reset form and close
-      setAmount('');
-      setNote('');
-      setRecurrenceType('monthly');
+      setIsSubmitting(false);
       onClose();
-
     } catch (error) {
       console.error('Failed to save transaction:', error);
+      setIsSubmitting(false);
       Alert.alert('Error', 'Failed to save transaction. Please try again.');
     }
   };
 
   const handleCancel = () => {
     onClose();
+  };
+  
+  const handleSelectCategory = (categoryId: string) => {
+    setSelectedCategory(categoryId);
   };
 
   // Generate options for day selection (1-31)
@@ -186,7 +207,7 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
           contentContainerStyle={styles.monthsContainer}>
           {months.map((month, index) => (
             <TouchableOpacity
-              key={`month-${
+              key={`weekday-${
                 // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
                 index
               }`}
@@ -317,6 +338,17 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
               />
             </View>
 
+            {!isIncome && (
+              <View style={styles.categoryContainer}>
+                <Text style={styles.sectionLabel}>Category</Text>
+                <CategoryPicker
+                  categories={categories}
+                  selectedCategoryId={selectedCategory}
+                  onSelectCategory={handleSelectCategory}
+                />
+              </View>
+            )}
+
             <View style={styles.recurrenceContainer}>
               <Text style={styles.sectionLabel}>Recurrence</Text>
               <View style={styles.recurrenceOptions}>
@@ -383,15 +415,19 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
               <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={handleCancel}
+                disabled={isSubmitting}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.saveButton}
+                style={[styles.saveButton, isSubmitting && styles.disabledButton]}
                 onPress={handleSave}
+                disabled={isSubmitting}
               >
-                <Text style={styles.saveButtonText}>Save</Text>
+                <Text style={styles.saveButtonText}>
+                  {isSubmitting ? 'Saving...' : 'Save'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -466,6 +502,9 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     height: 80,
     textAlignVertical: 'top',
+  },
+  categoryContainer: {
+    marginBottom: 16,
   },
   recurrenceContainer: {
     marginBottom: 16,
@@ -610,6 +649,9 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontWeight: '600',
   },
+  disabledButton: {
+    opacity: 0.6,
+  }
 });
 
 export default TransactionEditor;

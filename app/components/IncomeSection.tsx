@@ -4,6 +4,8 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import TransactionEditor from './TransactionEditor';
+import { useRecurringTransactions } from '../contexts/RecurringTransactionsContext';
+import { formatCurrency } from '../utils/currencyUtils';
 
 interface IncomeSectionProps {
   onIncomePress?: () => void;
@@ -12,8 +14,18 @@ interface IncomeSectionProps {
 
 const IncomeSection: React.FC<IncomeSectionProps> = () => {
   const router = useRouter();
+  const { transactions } = useRecurringTransactions();
   const [showIncomeEditor, setShowIncomeEditor] = useState(false);
   const [showExpenseEditor, setShowExpenseEditor] = useState(false);
+
+  // Calculate totals for display
+  const recurringIncome = transactions
+    .filter(tx => tx.isIncome && tx.active)
+    .reduce((sum, tx) => sum + tx.amount, 0);
+
+  const recurringExpenses = transactions
+    .filter(tx => !tx.isIncome && tx.active)
+    .reduce((sum, tx) => sum + tx.amount, 0);
 
   const handleIncomePress = () => {
     setShowIncomeEditor(true);
@@ -39,6 +51,29 @@ const IncomeSection: React.FC<IncomeSectionProps> = () => {
           <Text style={styles.manageButtonText}>Manage transactions</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Summary row */}
+      {(recurringIncome > 0 || recurringExpenses > 0) && (
+        <View style={styles.summaryRow}>
+          {recurringIncome > 0 && (
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>Monthly Income</Text>
+              <Text style={[styles.summaryValue, styles.incomeValue]}>
+                +{formatCurrency(recurringIncome)}
+              </Text>
+            </View>
+          )}
+
+          {recurringExpenses > 0 && (
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>Monthly Expenses</Text>
+              <Text style={[styles.summaryValue, styles.expenseValue]}>
+                -{formatCurrency(recurringExpenses)}
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
 
       <View style={styles.buttonsContainer}>
         <TouchableOpacity
@@ -134,6 +169,30 @@ const styles = StyleSheet.create({
     color: '#15E8FE',
     fontSize: 12,
     fontWeight: '600',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  summaryItem: {
+    flex: 1,
+  },
+  summaryLabel: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginBottom: 4,
+  },
+  summaryValue: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  incomeValue: {
+    color: '#15E8FE',
+  },
+  expenseValue: {
+    color: '#FF6B6B',
   },
 });
 

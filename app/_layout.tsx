@@ -1,3 +1,4 @@
+// app/_layout.tsx
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SplashScreen, Slot } from 'expo-router';
@@ -9,6 +10,7 @@ import { PeriodProvider } from './contexts/PeriodContext';
 import { initDatabase } from './database/database';
 import { BudgetProvider } from './contexts/BudgetContext';
 import { CurrencyProvider } from './contexts/CurrencyContext';
+import { RecurringTransactionsProvider } from './contexts/RecurringTransactionsContext';
 
 // Prevent the splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -61,8 +63,10 @@ export default function RootLayout() {
       <PeriodProvider>
         <BudgetProvider>
           <ExpensesProvider>
-            <StatusBar style="light" />
-            <Slot />
+            <RecurringTransactionsProvider>
+              <StatusBar style="light" />
+              <Slot />
+            </RecurringTransactionsProvider>
           </ExpensesProvider>
         </BudgetProvider>
       </PeriodProvider>

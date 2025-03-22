@@ -1,13 +1,15 @@
-import React, { useCallback } from 'react';
+// app/screens/HomeScreen.tsx
+import React, { useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import { useExpenses } from '../contexts/ExpensesContext';
+import { useRecurringTransactions } from '../contexts/RecurringTransactionsContext';
 import Summary from '../components/Summary';
 import ExpenseItem from '../components/ExpenseItem';
 import type { Expense } from '../database/schema';
-import IncomeSection from '../components/IncomeSection'; // Now directly opens TransactionEditor modals
+import IncomeSection from '../components/IncomeSection';
 
 const HomeScreen = () => {
   const router = useRouter();
@@ -18,13 +20,36 @@ const HomeScreen = () => {
     refreshData
   } = useExpenses();
 
+  const { processTransactions } = useRecurringTransactions();
   const [refreshing, setRefreshing] = React.useState(false);
+
+  // Process recurring transactions when the app starts
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+    useEffect(() => {
+    const processRecurring = async () => {
+      try {
+        await processTransactions();
+      } catch (error) {
+        console.error('Failed to process recurring transactions:', error);
+      }
+    };
+
+    processRecurring();
+  }, []);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refreshData();
-    setRefreshing(false);
-  }, [refreshData]);
+    try {
+      // Process any due recurring transactions
+      await processTransactions();
+      // Then refresh all expense data
+      await refreshData();
+    } catch (error) {
+      console.error('Error during refresh:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshData, processTransactions]);
 
   const handleExpensePress = (expense: Expense) => {
     router.push({
