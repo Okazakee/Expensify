@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -48,6 +48,13 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
   const isEditing = !!initialExpense;
 
+  // Reset form state when the component is unmounted
+  useEffect(() => {
+    return () => {
+      setIsSubmitting(false);
+    };
+  }, []);
+
   const validateForm = (): boolean => {
     const newErrors: {amount?: string; category?: string} = {};
 
@@ -91,6 +98,16 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
       }
 
       onSubmit();
+
+      // Reset form state
+      if (!isEditing) {
+        setAmount('');
+        setCategory(null);
+        setDate(new Date());
+        setNote('');
+      }
+      setIsSubmitting(false);
+
     } catch (error) {
       console.error('Failed to save expense:', error);
       setIsSubmitting(false);
