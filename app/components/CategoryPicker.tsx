@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  FlatList,
   Dimensions
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,11 +24,29 @@ const CategoryPicker: React.FC<CategoryPickerProps> = ({
   selectedCategoryId,
   onSelectCategory
 }) => {
-  const renderCategoryItem = ({ item }: { item: Category }) => {
+  // Create rows of categories (2 per row)
+  const renderCategories = () => {
+    const rows = [];
+
+    for (let i = 0; i < categories.length; i += 2) {
+      const row = (
+        <View key={`row-${i}`} style={styles.columnWrapper}>
+          {renderCategoryItem(categories[i])}
+          {i + 1 < categories.length ? renderCategoryItem(categories[i + 1]) : <View style={{ width: ITEM_WIDTH }} />}
+        </View>
+      );
+      rows.push(row);
+    }
+
+    return rows;
+  };
+
+  const renderCategoryItem = (item: Category) => {
     const isSelected = selectedCategoryId === item.id;
 
     return (
       <TouchableOpacity
+        key={item.id}
         style={[
           styles.categoryItem,
           isSelected && { borderColor: item.color, borderWidth: 2 }
@@ -50,14 +67,9 @@ const CategoryPicker: React.FC<CategoryPickerProps> = ({
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Category</Text>
-      <FlatList
-        data={categories}
-        renderItem={renderCategoryItem}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.columnWrapper}
-        showsVerticalScrollIndicator={false}
-      />
+      <View style={styles.categoriesContainer}>
+        {renderCategories()}
+      </View>
     </View>
   );
 };
@@ -72,7 +84,11 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     marginBottom: 12,
   },
+  categoriesContainer: {
+    width: '100%',
+  },
   columnWrapper: {
+    flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 16,
   },

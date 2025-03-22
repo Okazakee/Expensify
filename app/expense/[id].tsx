@@ -30,10 +30,8 @@ export default function ExpenseDetailScreen() {
   const handleEdit = () => {
     if (expense) {
       Haptics.selectionAsync();
-      router.push({
-        pathname: "/add-expense",
-        params: { id: expense.id }
-      });
+      // Navigate to edit screen with the ID in the URL
+      router.push(`/expense/edit/${expense.id}`);
     }
   };
 

@@ -29,7 +29,7 @@ const HomeScreen = () => {
 
   const handleExpensePress = (expense: Expense) => {
     router.push({
-      pathname: "/expenses/[id]" as never,
+      pathname: "/expense/[id]",
       params: { id: expense.id }
     });
 };

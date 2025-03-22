@@ -42,9 +42,11 @@ export default function TabsLayout() {
         name="add-expense"
         options={{
           title: 'Add',
-          tabBarIcon: ({ color }) => (
+          tabBarIcon: () => (
             <View style={styles.addButtonContainer}>
-              <Ionicons name="add-circle" size={50} color="#50E3C2" />
+              <View style={styles.addButtonBackground}>
+                <Ionicons name="add" size={30} color="#000000" />
+              </View>
             </View>
           ),
         }}
@@ -84,5 +86,18 @@ const styles = StyleSheet.create({
     top: -10,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  addButtonBackground: {
+    backgroundColor: '#50E3C2',
+    borderRadius: 25,
+    width: 50,
+    height: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#50E3C2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
   },
 });

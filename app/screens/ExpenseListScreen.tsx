@@ -142,12 +142,6 @@ const ExpenseListScreen = () => {
         }
       />
 
-      <TouchableOpacity
-        style={styles.floatingButton}
-        onPress={handleAddExpense}
-      >
-        <Ionicons name="add" size={32} color="#000" />
-      </TouchableOpacity>
     </SafeAreaView>
   );
 };
