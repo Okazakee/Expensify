@@ -90,7 +90,7 @@ const SettingsScreen = () => {
     return (
       <TouchableOpacity style={styles.settingItem} onPress={onPress}>
         <View style={styles.settingLeft}>
-          <Ionicons name={icon as any} size={22} color="#50E3C2" style={styles.settingIcon} />
+          <Ionicons name={icon as any} size={22} color="#15E8FE" style={styles.settingIcon} />
           <Text style={styles.settingTitle}>{title}</Text>
         </View>
         {rightElement ? (
@@ -126,8 +126,8 @@ const SettingsScreen = () => {
             <Switch
               value={darkMode}
               onValueChange={toggleDarkMode}
-              trackColor={{ false: '#3e3e3e', true: 'rgba(80, 227, 194, 0.3)' }}
-              thumbColor={darkMode ? '#50E3C2' : '#f4f3f4'}
+              trackColor={{ false: '#3e3e3e', true: 'rgba(80, 171, 227, 0.3)' }}
+              thumbColor={darkMode ? '#15E8FE' : '#f4f3f4'}
               ios_backgroundColor="#3e3e3e"
             />
           )}
@@ -143,8 +143,8 @@ const SettingsScreen = () => {
             <Switch
               value={notifications}
               onValueChange={toggleNotifications}
-              trackColor={{ false: '#3e3e3e', true: 'rgba(80, 227, 194, 0.3)' }}
-              thumbColor={notifications ? '#50E3C2' : '#f4f3f4'}
+              trackColor={{ false: '#3e3e3e', true: 'rgba(80, 171, 227, 0.3)' }}
+              thumbColor={darkMode ? '#15E8FE' : '#f4f3f4'}
               ios_backgroundColor="#3e3e3e"
             />
           )}
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#50E3C2',
+    color: '#15E8FE',
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   currencySymbol: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#50E3C2',
+    color: '#15E8FE',
     marginRight: 4,
   },
   currencyCode: {

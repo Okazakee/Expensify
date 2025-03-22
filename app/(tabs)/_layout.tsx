@@ -16,7 +16,7 @@ export default function TabsLayout() {
         tabBarBackground: () => (
           <BlurView intensity={10} tint="dark" style={StyleSheet.absoluteFill} />
         ),
-        tabBarActiveTintColor: '#50E3C2',
+        tabBarActiveTintColor: '#15E8FE',
         tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.5)',
         tabBarShowLabel: true,
         tabBarLabelStyle: styles.tabLabel,
@@ -88,16 +88,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   addButtonBackground: {
-    backgroundColor: '#50E3C2',
+    backgroundColor: '#15E8FE',
     borderRadius: 25,
     width: 50,
     height: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#50E3C2',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
   },
 });

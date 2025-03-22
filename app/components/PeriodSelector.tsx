@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   selectedPickerOptionText: {
-    color: '#50E3C2',
+    color: '#15E8FE',
     fontWeight: '600',
   },
   pickerButtons: {
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   confirmButton: {
-    backgroundColor: '#50E3C2',
+    backgroundColor: '#15E8FE',
     marginLeft: 8,
   },
   cancelButtonText: {

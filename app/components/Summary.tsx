@@ -122,11 +122,11 @@ const styles = StyleSheet.create({
     marginLeft: 'auto',
     paddingHorizontal: 20,
     paddingVertical: 8,
-    backgroundColor: 'rgba(80, 227, 194, 0.2)',
+    backgroundColor: 'rgba(80, 202, 227, 0.2)',
     borderRadius: 4
   },
   editButtonText: {
-    color: '#50E3C2',
+    color: '#15E8FE',
     fontSize: 12,
     fontWeight: '600',
   },
@@ -144,6 +144,8 @@ const styles = StyleSheet.create({
   budgetAmount: {
     fontSize: 16,
     color: '#888888',
+    alignSelf: 'flex-end',
+    marginBottom: 5
   },
   progressBarContainer: {
     height: 6,
@@ -154,7 +156,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#50E3C2',
+    backgroundColor: '#15E8FE',
     borderRadius: 3,
   },
   overBudgetBar: {

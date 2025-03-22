@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   },
   periodText: {
     fontSize: 16,
-    color: '#50E3C2',
+    color: '#15E8FE',
     textAlign: 'center',
     marginBottom: 20,
   },
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 12,
     borderRadius: 8,
-    backgroundColor: '#50E3C2',
+    backgroundColor: '#15E8FE',
     alignItems: 'center',
   },
   saveButtonText: {
