@@ -9,7 +9,7 @@ import {
   RefreshControl
 } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
-import * as Haptics from 'expo-haptics';
+
 
 import { useExpenses } from '../contexts/ExpensesContext';
 import { useExpensesFilters } from '../hooks/useExpenses';
@@ -53,7 +53,6 @@ const ExpenseListScreen = () => {
   };
 
   const handleClearFilters = () => {
-    Haptics.selectionAsync();
     clearFilters();
   };
 
@@ -138,8 +137,8 @@ const ExpenseListScreen = () => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="#50E3C2"
-            colors={["#50E3C2"]}
+            tintColor="#15E8FE0"
+            colors={["#15E8FE0"]}
           />
         }
       />
@@ -205,11 +204,11 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#50E3C2',
+    backgroundColor: '#15E8FE0',
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 5,
-    shadowColor: '#50E3C2',
+    shadowColor: '#15E8FE0',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
