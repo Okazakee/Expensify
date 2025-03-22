@@ -7,6 +7,8 @@ import { View, Text, StyleSheet } from 'react-native';
 import { ExpensesProvider } from './contexts/ExpensesContext';
 import { PeriodProvider } from './contexts/PeriodContext';
 import { initDatabase } from './database/database';
+import { BudgetProvider } from './contexts/BudgetContext';
+import { CurrencyProvider } from './contexts/CurrencyContext';
 
 // Prevent the splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -55,11 +57,15 @@ export default function RootLayout() {
   }
 
   return (
-    <PeriodProvider>
-      <ExpensesProvider>
-        <StatusBar style="light" />
-        <Slot />
-      </ExpensesProvider>
-    </PeriodProvider>
+    <CurrencyProvider>
+      <PeriodProvider>
+        <BudgetProvider>
+          <ExpensesProvider>
+            <StatusBar style="light" />
+            <Slot />
+          </ExpensesProvider>
+        </BudgetProvider>
+      </PeriodProvider>
+    </CurrencyProvider>
   );
 }

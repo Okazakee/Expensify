@@ -8,21 +8,21 @@ import {
   SafeAreaView,
   Switch,
   Alert,
-  Linking
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import { useCurrency } from '../contexts/CurrencyContext';
+import CurrencySelector from '../components/CurrencySelector';
 
 const SettingsScreen = () => {
+  const { currentCurrency } = useCurrency();
   const [darkMode, setDarkMode] = useState(true);
   const [notifications, setNotifications] = useState(true);
-  const [haptics, setHaptics] = useState(true);
+  const [showCurrencySelector, setShowCurrencySelector] = useState(false);
 
   const toggleDarkMode = () => {
     // In a real app, we would handle theme switching here
     // For this hackathon, we're keeping it dark theme only
-    Haptics.selectionAsync();
     Alert.alert(
       "Dark Mode Only",
       "This app is designed with a dark theme for the retrofuturism aesthetic. Light mode is not available in this version.",
@@ -31,17 +31,10 @@ const SettingsScreen = () => {
   };
 
   const toggleNotifications = () => {
-    Haptics.selectionAsync();
     setNotifications(!notifications);
   };
 
-  const toggleHaptics = () => {
-    Haptics.selectionAsync();
-    setHaptics(!haptics);
-  };
-
   const handleExportData = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
       "Export Data",
       "This feature would export your expense data in CSV format. Not implemented for the hackathon.",
@@ -49,8 +42,11 @@ const SettingsScreen = () => {
     );
   };
 
+  const handleCurrencySelection = () => {
+    setShowCurrencySelector(true);
+  };
+
   const handleImportData = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
       "Import Data",
       "This feature would allow importing expense data from CSV. Not implemented for the hackathon.",
@@ -59,7 +55,6 @@ const SettingsScreen = () => {
   };
 
   const handleResetData = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     Alert.alert(
       "Reset All Data",
       "This will delete all your expenses and categories. This action cannot be undone. Are you sure?",
@@ -78,26 +73,11 @@ const SettingsScreen = () => {
   };
 
   const handleAbout = () => {
-    Haptics.selectionAsync();
     Alert.alert(
       "About Expensify",
       "Version 1.0.0\n\nA simple yet powerful expense tracking app created for the 24-hour hackathon. Built with React Native and Expo.",
       [{ text: "OK" }]
     );
-  };
-
-  const handleRateApp = () => {
-    Haptics.selectionAsync();
-    Alert.alert(
-      "Rate App",
-      "This would normally take you to the app store. Not implemented for the hackathon.",
-      [{ text: "OK" }]
-    );
-  };
-
-  const handleContactSupport = () => {
-    Haptics.selectionAsync();
-    Linking.openURL("mailto:support@example.com");
   };
 
   const renderSettingsItem = (
@@ -169,16 +149,13 @@ const SettingsScreen = () => {
             />
           )}
           {renderSettingsItem(
-            'vibrate',
-            'Haptic Feedback',
-            toggleHaptics,
-            <Switch
-              value={haptics}
-              onValueChange={toggleHaptics}
-              trackColor={{ false: '#3e3e3e', true: 'rgba(80, 227, 194, 0.3)' }}
-              thumbColor={haptics ? '#50E3C2' : '#f4f3f4'}
-              ios_backgroundColor="#3e3e3e"
-            />
+            'cash-outline',
+            'Currency',
+            handleCurrencySelection,
+            <View style={styles.currencyValue}>
+              <Text style={styles.currencySymbol}>{currentCurrency.symbol}</Text>
+              <Text style={styles.currencyCode}>{currentCurrency.code}</Text>
+            </View>
           )}
         </View>
 
@@ -194,12 +171,16 @@ const SettingsScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About</Text>
           {renderSettingsItem('information-circle-outline', 'About Expensify', handleAbout)}
-          {renderSettingsItem('star-outline', 'Rate the App', handleRateApp)}
-          {renderSettingsItem('mail-outline', 'Contact Support', handleContactSupport)}
         </View>
 
         <Text style={styles.versionText}>Version 1.0.0</Text>
       </View>
+
+      <CurrencySelector
+        isVisible={showCurrencySelector}
+        onClose={() => setShowCurrencySelector(false)}
+      />
+
     </SafeAreaView>
   );
 };
@@ -243,6 +224,20 @@ const styles = StyleSheet.create({
   settingTitle: {
     fontSize: 16,
     color: '#FFFFFF',
+  },
+  currencyValue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  currencySymbol: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#50E3C2',
+    marginRight: 4,
+  },
+  currencyCode: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
   },
   versionText: {
     textAlign: 'center',

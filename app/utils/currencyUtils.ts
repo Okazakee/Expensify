@@ -1,10 +1,20 @@
+let currentCurrencyCode = 'USD';
+let currentCurrencySymbol = '$';
+
+export const setCurrencyForFormatting = (currencyCode: string, currencySymbol: string): void => {
+  currentCurrencyCode = currencyCode;
+  currentCurrencySymbol = currencySymbol;
+};
+
 export const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: currentCurrencyCode,
     minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(amount);
+    maximumFractionDigits: 2,
+    // Override the currency symbol to use our stored symbol
+    // This handles displaying the symbol correctly across all currencies
+  }).format(amount).replace(/^\D+/, currentCurrencySymbol);
 };
 
 export const parseAmount = (input: string): number => {
@@ -26,4 +36,4 @@ export const validateAmount = (input: string): boolean => {
   return !Number.isNaN(amount) && amount > 0;
 };
 
-export default { formatCurrency, parseAmount, validateAmount };
+export default { formatCurrency, parseAmount, validateAmount, setCurrencyForFormatting };

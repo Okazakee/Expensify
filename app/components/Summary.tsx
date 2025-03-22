@@ -1,53 +1,88 @@
 import type React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+
 import { formatCurrency } from '../utils/currencyUtils';
 import PeriodSelector from './PeriodSelector';
+import BudgetEditor from './BudgetEditor';
+import { useBudget } from '../contexts/BudgetContext';
 
 interface SummaryProps {
   spent: number;
-  budget?: number;
   title?: string;
   showPercentage?: boolean;
 }
 
 const Summary: React.FC<SummaryProps> = ({
   spent,
-  budget = 750, // Default budget
   title = 'Monthly Budget',
   showPercentage = true
 }) => {
-  const percentUsed = budget > 0 ? (spent / budget) * 100 : 0;
-  const remaining = budget - spent;
-  const isOverBudget = spent > budget;
+  const [showBudgetEditor, setShowBudgetEditor] = useState(false);
+  const { currentBudget } = useBudget();
+
+  // Budget is either from context or default (0 if unset)
+  const budget = currentBudget !== null ? currentBudget : 0;
+  const isBudgetSet = currentBudget !== null;
+
+  // Only calculate these if budget is set
+  const percentUsed = isBudgetSet && budget > 0 ? (spent / budget) * 100 : 0;
+  const remaining = isBudgetSet ? budget - spent : 0;
+  const isOverBudget = isBudgetSet && spent > budget;
+
+  const handleEditBudget = () => {
+    Haptics.selectionAsync();
+    setShowBudgetEditor(true);
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <Text style={styles.title}>{title}</Text>
-        <PeriodSelector style={styles.monthSelector} textStyle={styles.month} />
+        <View style={styles.headerActions}>
+          <PeriodSelector style={styles.monthSelector} textStyle={styles.month} />
+        </View>
       </View>
 
       <View style={styles.amountsRow}>
         <Text style={styles.spentAmount}>{formatCurrency(spent)}</Text>
-        <Text style={styles.budgetAmount}>of {formatCurrency(budget)}</Text>
+          {isBudgetSet && (
+            <Text style={styles.budgetAmount}>of {formatCurrency(budget)}</Text>
+          )}
+          <TouchableOpacity onPress={handleEditBudget} style={styles.editButton}>
+            <Text style={styles.editButtonText}>Edit Budget</Text>
+          </TouchableOpacity>
       </View>
 
       {/* Progress Bar */}
       <View style={styles.progressBarContainer}>
-        <View
-          style={[
-            styles.progressBar,
-            { width: `${Math.min(percentUsed, 100)}%` },
-            isOverBudget && styles.overBudgetBar
-          ]}
-        />
+        {isBudgetSet ? (
+          <View
+            style={[
+              styles.progressBar,
+              { width: `${Math.min(percentUsed, 100)}%` },
+              isOverBudget && styles.overBudgetBar
+            ]}
+          />
+        ) : null}
       </View>
 
-      {showPercentage && (
+      {isBudgetSet && showPercentage ? (
         <Text style={[styles.progressText, isOverBudget && styles.overBudgetText]}>
           {percentUsed.toFixed(0)}% used • {isOverBudget ? 'Over budget by ' : ''}{formatCurrency(Math.abs(remaining))} {!isOverBudget ? 'remaining' : ''}
         </Text>
+      ) : (
+        <Text style={styles.noBudgetText}>
+          No budget set for this month
+        </Text>
       )}
+
+      <BudgetEditor
+        isVisible={showBudgetEditor}
+        onClose={() => setShowBudgetEditor(false)}
+      />
     </View>
   );
 };
@@ -65,6 +100,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   title: {
     fontSize: 16,
     color: '#ffffff',
@@ -77,11 +116,23 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   monthSelector: {
-    padding: 4, // Add touch target padding
+    padding: 4,
+  },
+  editButton: {
+    marginLeft: 'auto',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(80, 227, 194, 0.2)',
+    borderRadius: 4
+  },
+  editButtonText: {
+    color: '#50E3C2',
+    fontSize: 12,
+    fontWeight: '600',
   },
   amountsRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
     marginBottom: 12,
   },
   spentAmount: {
@@ -115,6 +166,11 @@ const styles = StyleSheet.create({
   },
   overBudgetText: {
     color: '#FF6B6B',
+  },
+  noBudgetText: {
+    fontSize: 14,
+    color: '#888888',
+    fontStyle: 'italic',
   },
 });
 
