@@ -1,41 +1,56 @@
 {
   "expo": {
-    "name": "expenses-tracker-hackathon",
+    "name": "Expensify by Okazakee",
     "slug": "expenses-tracker-hackathon",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
-    "userInterfaceStyle": "automatic",
+    "scheme": "expensify",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/images/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#121212"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.okazakee.expensify"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      }
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#121212"
+      },
+      "package": "com.okazakee.expensify"
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/icon.png",
+      "themeColor": "#121212"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#121212"
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "description": "A simple yet powerful expense tracking app created by Okazakee",
+    "githubUrl": "https://github.com/okazakee/expensify",
+    "privacy": "unlisted",
+    "primaryColor": "#6200EE"
   }
 }
