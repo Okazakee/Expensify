@@ -36,7 +36,6 @@ const HomeScreen = () => {
 };
 
   const handleViewAllExpenses = () => {
-    Haptics.selectionAsync();
     router.push({ pathname: "/expenses" });
   };
 

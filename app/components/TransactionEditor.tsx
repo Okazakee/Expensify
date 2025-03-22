@@ -60,8 +60,6 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
         isIncome
       });
 
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
       // Reset form
       setAmount('');
       setNote('');

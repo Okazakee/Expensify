@@ -56,6 +56,7 @@ const CategoryPicker: React.FC<CategoryPickerProps> = ({
         <BlurView intensity={20} tint="dark" style={styles.blurContainer}>
           <View style={[styles.iconContainer, { backgroundColor: item.color }]}>
             {/* TODO fix type later */}
+            {/* biome-ignore lint/suspicious/noExplicitAny: <explanation> */}
             <Ionicons name={item.icon as any} size={24} color="#000000" />
           </View>
           <Text style={styles.categoryName}>{item.name}</Text>

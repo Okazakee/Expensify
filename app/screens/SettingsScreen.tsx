@@ -90,6 +90,7 @@ const SettingsScreen = () => {
     return (
       <TouchableOpacity style={styles.settingItem} onPress={onPress}>
         <View style={styles.settingLeft}>
+          {/* biome-ignore lint/suspicious/noExplicitAny: <explanation> */}
           <Ionicons name={icon as any} size={22} color="#15E8FE" style={styles.settingIcon} />
           <Text style={styles.settingTitle}>{title}</Text>
         </View>

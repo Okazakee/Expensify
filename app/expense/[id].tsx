@@ -14,6 +14,7 @@ export default function ExpenseDetailScreen() {
   const router = useRouter();
   const { expenses, categories, removeExpense } = useExpenses();
   const [expense, setExpense] = useState<Expense | null>(null);
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   const [category, setCategory] = useState<any>(null);
 
   useEffect(() => {

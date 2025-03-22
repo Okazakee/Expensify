@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 const TabBarIcon = ({ name, color }: { name: any; color: string }) => {
   return <Ionicons name={name} size={24} color={color} />;
 };
@@ -41,7 +42,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="add-expense"
         options={{
-          title: 'Add',
+          title: '',
           tabBarIcon: () => (
             <View style={styles.addButtonContainer}>
               <View style={styles.addButtonBackground}>

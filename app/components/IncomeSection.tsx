@@ -1,7 +1,8 @@
 import type React from 'react';
+import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
+import TransactionManager from './TransactionManager';
 
 interface IncomeSectionProps {
   onIncomePress: () => void;
@@ -12,6 +13,9 @@ const IncomeSection: React.FC<IncomeSectionProps> = ({
   onIncomePress,
   onExpensePress
 }) => {
+
+  const [showTransactionManager, setShowTransactionManager] = useState(false);
+
   const handleIncomePress = () => {
     onIncomePress();
   };
@@ -20,9 +24,21 @@ const IncomeSection: React.FC<IncomeSectionProps> = ({
     onExpensePress();
   };
 
+  const handleManageTransactions = () => {
+    setShowTransactionManager(true);
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Periodic Transactions</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Periodic Transactions</Text>
+        <TouchableOpacity
+          style={styles.manageButton}
+          onPress={handleManageTransactions}
+        >
+          <Text style={styles.manageButtonText}>Manage transactions</Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.buttonsContainer}>
         <TouchableOpacity
@@ -41,6 +57,11 @@ const IncomeSection: React.FC<IncomeSectionProps> = ({
           <Text style={styles.buttonText}>Expense</Text>
         </TouchableOpacity>
       </View>
+
+      <TransactionManager
+        isVisible={showTransactionManager}
+        onClose={() => setShowTransactionManager(false)}
+      />
     </View>
   );
 };
@@ -87,7 +108,24 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#FFFFFF',
     fontWeight: '500',
-  }
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  manageButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(21, 232, 254, 0.2)',
+    borderRadius: 4,
+  },
+  manageButtonText: {
+    color: '#15E8FE',
+    fontSize: 12,
+    fontWeight: '600',
+  },
 });
 
 export default IncomeSection;

@@ -30,6 +30,7 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, onPress }) => {
     <TouchableOpacity style={styles.container} onPress={handlePress}>
       <View style={[styles.categoryIcon, { backgroundColor: category.color }]}>
         {/* TODO fix type later */}
+        {/* biome-ignore lint/suspicious/noExplicitAny: <explanation> */}
         <Ionicons name={category.icon as any} size={18} color="#000000" />
       </View>
 
