@@ -9,6 +9,7 @@ import { useExpenses } from '../contexts/ExpensesContext';
 import Summary from '../components/Summary';
 import ExpenseItem from '../components/ExpenseItem';
 import type { Expense } from '../database/schema';
+import IncomeSection from '../components/IncomeSection';
 
 const HomeScreen = () => {
   const router = useRouter();
@@ -62,13 +63,17 @@ const HomeScreen = () => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="#50E3C2"
-            colors={["#50E3C2"]}
+            tintColor="#15E8FE"
+            colors={["#15E8FE"]}
           />
         }
       >
         {/* Budget Summary */}
         <Summary spent={monthlyTotal} />
+        <IncomeSection
+          onIncomePress={() => console.log('asd')}
+          onExpensePress={() => console.log('asd')}
+        />
 
         {/* Monthly Expenses */}
         <View style={styles.sectionHeader}>
