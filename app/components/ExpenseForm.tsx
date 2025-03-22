@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -162,7 +162,6 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
               display="default"
               onChange={handleDateChange}
               maximumDate={new Date()}
-              themeVariant="dark"
             />
           )}
         </View>

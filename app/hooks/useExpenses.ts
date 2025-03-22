@@ -87,3 +87,5 @@ export const useCategoryStats = (categoryId: string) => {
     expenses: categoryExpenses
   };
 };
+
+export default { useExpensesFilters, useCategoryStats };

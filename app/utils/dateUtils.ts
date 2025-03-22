@@ -53,3 +53,14 @@ export const getCurrentMonthName = (): string => {
 export const getCurrentYear = (): number => {
   return new Date().getFullYear();
 };
+
+export default {
+  formatDate,
+  formatFullDate,
+  getISODate,
+  getCurrentMonthRange,
+  getMonthRange,
+  getMonthName,
+  getCurrentMonthName,
+  getCurrentYear
+};

@@ -25,3 +25,5 @@ export const validateAmount = (input: string): boolean => {
   const amount = parseAmount(input);
   return !Number.isNaN(amount) && amount > 0;
 };
+
+export default { formatCurrency, parseAmount, validateAmount };
