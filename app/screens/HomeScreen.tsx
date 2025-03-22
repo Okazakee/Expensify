@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, Refres
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
-import * as Haptics from 'expo-haptics';
+
 
 import { useExpenses } from '../contexts/ExpensesContext';
 import Summary from '../components/Summary';
@@ -41,7 +41,6 @@ const HomeScreen = () => {
   };
 
   const handleOpenSettings = () => {
-    Haptics.selectionAsync();
     router.push({ pathname: "/settings" });
   };
 

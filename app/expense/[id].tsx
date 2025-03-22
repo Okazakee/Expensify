@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+
 
 import { useExpenses } from '../contexts/ExpensesContext';
 import { formatFullDate } from '../utils/dateUtils';
@@ -29,7 +29,6 @@ export default function ExpenseDetailScreen() {
 
   const handleEdit = () => {
     if (expense) {
-      Haptics.selectionAsync();
       // Navigate to edit screen with the ID in the URL
       router.push(`/expense/edit/${expense.id}`);
     }
@@ -38,7 +37,6 @@ export default function ExpenseDetailScreen() {
   const handleDelete = () => {
     if (!expense) return;
 
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     Alert.alert(
       "Delete Expense",
       "Are you sure you want to delete this expense? This action cannot be undone.",

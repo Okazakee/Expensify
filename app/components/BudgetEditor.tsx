@@ -9,7 +9,7 @@ import {
   StyleSheet,
   Alert
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
+
 
 import { useBudget } from '../contexts/BudgetContext';
 import { usePeriod } from '../contexts/PeriodContext';
@@ -40,7 +40,6 @@ const BudgetEditor: React.FC<BudgetEditorProps> = ({ isVisible, onClose }) => {
 
       // Save the budget
       await setBudgetForCurrentPeriod(amount);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onClose();
     } catch (error) {
       console.error('Failed to save budget:', error);
@@ -51,7 +50,6 @@ const BudgetEditor: React.FC<BudgetEditorProps> = ({ isVisible, onClose }) => {
   const handleClear = async () => {
     try {
       await clearBudgetForCurrentPeriod();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onClose();
     } catch (error) {
       console.error('Failed to clear budget:', error);

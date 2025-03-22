@@ -1,7 +1,7 @@
 import type React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+
 
 interface IncomeSectionProps {
   onIncomePress: () => void;
@@ -13,12 +13,10 @@ const IncomeSection: React.FC<IncomeSectionProps> = ({
   onExpensePress
 }) => {
   const handleIncomePress = () => {
-    Haptics.selectionAsync();
     onIncomePress();
   };
 
   const handleExpensePress = () => {
-    Haptics.selectionAsync();
     onExpensePress();
   };
 

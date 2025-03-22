@@ -8,7 +8,7 @@ import {
   FlatList
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+
 
 import { useCurrency, AVAILABLE_CURRENCIES } from '../contexts/CurrencyContext';
 import type { Currency } from '../contexts/CurrencyContext';
@@ -24,7 +24,6 @@ const CurrencySelector: React.FC<CurrencySelectorProps> = ({ isVisible, onClose 
   const handleSelect = async (currency: Currency) => {
     try {
       await setCurrency(currency);
-      Haptics.selectionAsync();
       onClose();
     } catch (error) {
       console.error('Error setting currency:', error);

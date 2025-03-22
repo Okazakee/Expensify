@@ -2,7 +2,7 @@ import type React from 'react';
 import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+
 
 import { formatCurrency } from '../utils/currencyUtils';
 import PeriodSelector from './PeriodSelector';
@@ -33,7 +33,6 @@ const Summary: React.FC<SummaryProps> = ({
   const isOverBudget = isBudgetSet && spent > budget;
 
   const handleEditBudget = () => {
-    Haptics.selectionAsync();
     setShowBudgetEditor(true);
   };
 

@@ -13,7 +13,7 @@ import {
   Button
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+
 
 import type { Expense } from '../database/schema';
 import { useExpenses } from '../contexts/ExpensesContext';
@@ -72,13 +72,11 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
   const handleSubmit = async () => {
     if (!validateForm()) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
     }
 
     try {
       setIsSubmitting(true);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       const expenseData = {
         amount: parseAmount(amount),
@@ -119,7 +117,6 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
     if (errors.category) {
       setErrors({ ...errors, category: undefined });
     }
-    Haptics.selectionAsync();
   };
 
   const handleShowDatePicker = () => {

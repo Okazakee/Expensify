@@ -9,7 +9,7 @@ import {
   ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+
 
 import { usePeriod } from '../contexts/PeriodContext';
 import { getMonthName } from '../utils/dateUtils';
@@ -29,13 +29,11 @@ const PeriodSelector: React.FC<PeriodSelectorProps> = ({ style, textStyle }) => 
     setTempMonth(selectedMonth);
     setTempYear(selectedYear);
     setShowModal(true);
-    Haptics.selectionAsync();
   };
 
   const handleConfirm = () => {
     setSelectedPeriod(tempMonth, tempYear);
     setShowModal(false);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
   const handleCancel = () => {
