@@ -29,7 +29,7 @@ const HomeScreen = () => {
 
   const handleExpensePress = (expense: Expense) => {
     router.push({
-      pathname: "/(expenses)/[id]" as never,
+      pathname: "/expenses/[id]" as never,
       params: { id: expense.id }
     });
 };
@@ -125,13 +125,6 @@ const HomeScreen = () => {
         </View>
       </ScrollView>
 
-      {/* Floating Add Button */}
-      <TouchableOpacity
-        style={styles.floatingButton}
-        onPress={handleAddExpense}
-      >
-        <Ionicons name="add" size={32} color="#000" />
-      </TouchableOpacity>
     </View>
   );
 };
