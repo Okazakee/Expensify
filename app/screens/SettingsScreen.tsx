@@ -106,10 +106,11 @@ const SettingsScreen = () => {
     onPress: () => void,
     rightElement?: React.ReactNode
   ) => {
+    /* TODO fix type later */
     return (
       <TouchableOpacity style={styles.settingItem} onPress={onPress}>
         <View style={styles.settingLeft}>
-          <Ionicons name={icon as any} size={22} color="#50E3C2" style={styles.settingIcon} /> {/* TODO fix type later */}
+          <Ionicons name={icon as any} size={22} color="#50E3C2" style={styles.settingIcon} />
           <Text style={styles.settingTitle}>{title}</Text>
         </View>
         {rightElement ? (

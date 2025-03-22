@@ -12,7 +12,9 @@ import { initDatabase } from './database/database';
 // Prevent the splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
 
-const TabBarIcon = ({ name, color }: { name: any; color: string }) => { /* TODO fix type later */
+//TODO fix later any
+
+const TabBarIcon = ({ name, color }: { name: any; color: string }) => {
   return <Ionicons name={name} size={24} color={color} />;
 };
 
