@@ -1,4 +1,3 @@
-// app/components/TransactionEditor.tsx
 import type React from 'react';
 import { useState, useEffect } from 'react';
 import {
@@ -11,10 +10,13 @@ import {
   Alert,
   ScrollView
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
 import { useRecurringTransactions } from '../contexts/RecurringTransactionsContext';
 import { useExpenses } from '../contexts/ExpensesContext';
 import { formatCurrency, parseAmount } from '../utils/currencyUtils';
-import CategoryPicker from './CategoryPicker';
+import { useCurrency } from '../contexts/CurrencyContext';
+import HorizontalCategoryPicker from './HorizontalCategoryPicker';
 import type { RecurringTransaction } from '../database/schema';
 
 // Transaction recurrence types
@@ -35,6 +37,7 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
 }) => {
   const { addTransaction, updateTransaction } = useRecurringTransactions();
   const { categories } = useExpenses();
+  const { currentCurrency } = useCurrency();
 
   const [amount, setAmount] = useState<string>('');
   const [note, setNote] = useState<string>('');
@@ -102,13 +105,13 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
 
   const handleSave = async () => {
     if (!validateForm()) return;
-    
+
     try {
       setIsSubmitting(true);
-      
+
       // Prepare transaction data based on recurrence type
       const parsedAmount = parseAmount(amount);
-      
+
       const transactionData: Omit<RecurringTransaction, 'id' | 'lastProcessed' | 'nextDue'> = {
         amount: parsedAmount,
         note,
@@ -154,7 +157,7 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
   const handleCancel = () => {
     onClose();
   };
-  
+
   const handleSelectCategory = (categoryId: string) => {
     setSelectedCategory(categoryId);
   };
@@ -207,7 +210,7 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
           contentContainerStyle={styles.monthsContainer}>
           {months.map((month, index) => (
             <TouchableOpacity
-              key={`weekday-${
+              key={`month-${
                 // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
                 index
               }`}
@@ -304,8 +307,8 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
       transparent={true}
       animationType="slide"
     >
-      <ScrollView style={styles.scrollContainer}>
-        <View style={styles.modalContainer}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalCenteredContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>
               {initialTransaction
@@ -313,154 +316,157 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
                 : `Add Recurring ${isIncome ? 'Income' : 'Expense'}`}
             </Text>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.currencySymbol}>$</Text>
-              <TextInput
-                style={styles.input}
-                value={amount}
-                onChangeText={setAmount}
-                placeholder="Enter amount"
-                placeholderTextColor="rgba(255, 255, 255, 0.3)"
-                keyboardType="decimal-pad"
-                autoFocus
-              />
-            </View>
-
-            <View style={styles.noteContainer}>
-              <Text style={styles.sectionLabel}>Description (Optional)</Text>
-              <TextInput
-                style={styles.noteInput}
-                value={note}
-                onChangeText={setNote}
-                placeholder="Add a note"
-                placeholderTextColor="rgba(255, 255, 255, 0.3)"
-                multiline
-              />
-            </View>
-
-            {!isIncome && (
-              <View style={styles.categoryContainer}>
-                <Text style={styles.sectionLabel}>Category</Text>
-                <CategoryPicker
-                  categories={categories}
-                  selectedCategoryId={selectedCategory}
-                  onSelectCategory={handleSelectCategory}
+            <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.currencySymbol}>{currentCurrency.symbol}</Text>
+                <TextInput
+                  style={styles.input}
+                  value={amount}
+                  onChangeText={setAmount}
+                  placeholder="Enter amount"
+                  placeholderTextColor="rgba(255, 255, 255, 0.3)"
+                  keyboardType="decimal-pad"
+                  autoFocus
                 />
               </View>
-            )}
 
-            <View style={styles.recurrenceContainer}>
-              <Text style={styles.sectionLabel}>Recurrence</Text>
-              <View style={styles.recurrenceOptions}>
+              <View style={styles.noteContainer}>
+                <Text style={styles.sectionLabel}>Description (Optional)</Text>
+                <TextInput
+                  style={styles.noteInput}
+                  value={note}
+                  onChangeText={setNote}
+                  placeholder="Add a note"
+                  placeholderTextColor="rgba(255, 255, 255, 0.3)"
+                  multiline
+                />
+              </View>
+
+              {!isIncome && (
+                <View style={styles.categoryContainer}>
+                  <HorizontalCategoryPicker
+                    categories={categories}
+                    selectedCategoryId={selectedCategory}
+                    onSelectCategory={handleSelectCategory}
+                  />
+                </View>
+              )}
+
+              <View style={styles.recurrenceContainer}>
+                <Text style={styles.sectionLabel}>Recurrence</Text>
+                <View style={styles.recurrenceOptions}>
+                  <TouchableOpacity
+                    style={[
+                      styles.recurrenceOption,
+                      recurrenceType === 'monthly' && styles.selectedRecurrenceOption
+                    ]}
+                    onPress={() => {
+                      setRecurrenceType('monthly');
+                    }}
+                  >
+                    <Text style={[
+                      styles.recurrenceOptionText,
+                      recurrenceType === 'monthly' && styles.selectedRecurrenceOptionText
+                    ]}>Monthly</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.recurrenceOption,
+                      recurrenceType === 'yearly' && styles.selectedRecurrenceOption
+                    ]}
+                    onPress={() => {
+                      setRecurrenceType('yearly');
+                    }}
+                  >
+                    <Text style={[
+                      styles.recurrenceOptionText,
+                      recurrenceType === 'yearly' && styles.selectedRecurrenceOptionText
+                    ]}>Yearly</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.recurrenceOption,
+                      recurrenceType === 'weekly' && styles.selectedRecurrenceOption
+                    ]}
+                    onPress={() => {
+                      setRecurrenceType('weekly');
+                    }}
+                  >
+                    <Text style={[
+                      styles.recurrenceOptionText,
+                      recurrenceType === 'weekly' && styles.selectedRecurrenceOptionText
+                    ]}>Weekly</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Render specific options based on recurrence type */}
+              {recurrenceType === 'monthly' && renderDayOptions()}
+
+              {recurrenceType === 'yearly' && (
+                <>
+                  {renderMonthOptions()}
+                  {renderYearlyDayOptions()}
+                </>
+              )}
+
+              {recurrenceType === 'weekly' && renderWeekdayOptions()}
+
+              <View style={styles.buttonRow}>
                 <TouchableOpacity
-                  style={[
-                    styles.recurrenceOption,
-                    recurrenceType === 'monthly' && styles.selectedRecurrenceOption
-                  ]}
-                  onPress={() => {
-                    setRecurrenceType('monthly');
-                  }}
+                  style={styles.cancelButton}
+                  onPress={handleCancel}
+                  disabled={isSubmitting}
                 >
-                  <Text style={[
-                    styles.recurrenceOptionText,
-                    recurrenceType === 'monthly' && styles.selectedRecurrenceOptionText
-                  ]}>Monthly</Text>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[
-                    styles.recurrenceOption,
-                    recurrenceType === 'yearly' && styles.selectedRecurrenceOption
-                  ]}
-                  onPress={() => {
-                    setRecurrenceType('yearly');
-                  }}
+                  style={[styles.saveButton, isSubmitting && styles.disabledButton]}
+                  onPress={handleSave}
+                  disabled={isSubmitting}
                 >
-                  <Text style={[
-                    styles.recurrenceOptionText,
-                    recurrenceType === 'yearly' && styles.selectedRecurrenceOptionText
-                  ]}>Yearly</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.recurrenceOption,
-                    recurrenceType === 'weekly' && styles.selectedRecurrenceOption
-                  ]}
-                  onPress={() => {
-                    setRecurrenceType('weekly');
-                  }}
-                >
-                  <Text style={[
-                    styles.recurrenceOptionText,
-                    recurrenceType === 'weekly' && styles.selectedRecurrenceOptionText
-                  ]}>Weekly</Text>
+                  <Text style={styles.saveButtonText}>
+                    {isSubmitting ? 'Saving...' : 'Save'}
+                  </Text>
                 </TouchableOpacity>
               </View>
-            </View>
-
-            {/* Render specific options based on recurrence type */}
-            {recurrenceType === 'monthly' && renderDayOptions()}
-
-            {recurrenceType === 'yearly' && (
-              <>
-                {renderMonthOptions()}
-                {renderYearlyDayOptions()}
-              </>
-            )}
-
-            {recurrenceType === 'weekly' && renderWeekdayOptions()}
-
-            <View style={styles.buttonRow}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={handleCancel}
-                disabled={isSubmitting}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.saveButton, isSubmitting && styles.disabledButton]}
-                onPress={handleSave}
-                disabled={isSubmitting}
-              >
-                <Text style={styles.saveButtonText}>
-                  {isSubmitting ? 'Saving...' : 'Save'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+            </ScrollView>
           </View>
         </View>
-      </ScrollView>
+      </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  scrollContainer: {
+  modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 50,
+  },
+  modalCenteredContainer: {
+    width: '90%',
+    maxHeight: '80%',
+    justifyContent: 'center',
   },
   modalContent: {
-    width: '90%',
     backgroundColor: '#1E1E1E',
     borderRadius: 12,
-    padding: 20,
-    alignSelf: 'center',
+    padding: 22,
+  },
+  scrollContent: {
+    maxHeight: '100%',
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '600',
     color: '#FFFFFF',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 22,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -470,17 +476,19 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginBottom: 16,
+    marginBottom: 18,
+    height: 56, // Slightly larger height
   },
   currencySymbol: {
-    fontSize: 24,
+    fontSize: 22, // Slightly larger font size
     fontWeight: '600',
     color: '#FFFFFF',
-    marginRight: 8,
+    marginRight: 10,
+    marginLeft: 4,
   },
   input: {
     flex: 1,
-    fontSize: 24,
+    fontSize: 22, // Slightly larger font size
     fontWeight: '600',
     color: '#FFFFFF',
   },
@@ -488,10 +496,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   noteContainer: {
-    marginBottom: 16,
+    marginBottom: 18,
   },
   noteInput: {
     borderWidth: 1,
@@ -500,14 +508,14 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     color: '#FFFFFF',
-    height: 80,
+    height: 70, // Slightly larger height
     textAlignVertical: 'top',
   },
   categoryContainer: {
-    marginBottom: 16,
+    marginBottom: 18,
   },
   recurrenceContainer: {
-    marginBottom: 16,
+    marginBottom: 18,
   },
   recurrenceOptions: {
     flexDirection: 'row',
@@ -515,7 +523,7 @@ const styles = StyleSheet.create({
   },
   recurrenceOption: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -530,6 +538,7 @@ const styles = StyleSheet.create({
   recurrenceOptionText: {
     color: '#FFFFFF',
     fontWeight: '500',
+    fontSize: 15,
   },
   selectedRecurrenceOptionText: {
     color: '#15E8FE',
@@ -537,20 +546,20 @@ const styles = StyleSheet.create({
   },
   // Day selector styles
   selectorContainer: {
-    marginBottom: 16,
+    marginBottom: 18,
   },
   daysContainer: {
     flexDirection: 'row',
-    paddingVertical: 8,
+    paddingVertical: 10,
   },
   dayOption: {
-    width: 40,
+    width: 40, // Slightly larger
     height: 40,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginRight: 8,
+    marginRight: 10,
   },
   selectedDayOption: {
     backgroundColor: 'rgba(21, 232, 254, 0.2)',
@@ -560,6 +569,7 @@ const styles = StyleSheet.create({
   dayOptionText: {
     color: '#FFFFFF',
     fontWeight: '500',
+    fontSize: 15, // Slightly larger font
   },
   selectedDayOptionText: {
     color: '#15E8FE',
@@ -568,16 +578,16 @@ const styles = StyleSheet.create({
   // Month selector styles
   monthsContainer: {
     flexDirection: 'row',
-    paddingVertical: 8,
+    paddingVertical: 10,
   },
   monthOption: {
-    minWidth: 60,
+    minWidth: 60, // Slightly larger
     height: 40,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginRight: 8,
+    marginRight: 10,
     paddingHorizontal: 10,
   },
   selectedMonthOption: {
@@ -588,6 +598,7 @@ const styles = StyleSheet.create({
   monthOptionText: {
     color: '#FFFFFF',
     fontWeight: '500',
+    fontSize: 15, // Slightly larger font
   },
   selectedMonthOptionText: {
     color: '#15E8FE',
@@ -596,16 +607,16 @@ const styles = StyleSheet.create({
   // Weekday selector styles
   weekdaysContainer: {
     flexDirection: 'row',
-    paddingVertical: 8,
+    paddingVertical: 10,
   },
   weekdayOption: {
-    minWidth: 60,
+    minWidth: 60, // Slightly larger
     height: 40,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginRight: 8,
+    marginRight: 10,
     paddingHorizontal: 10,
   },
   selectedWeekdayOption: {
@@ -616,6 +627,7 @@ const styles = StyleSheet.create({
   weekdayOptionText: {
     color: '#FFFFFF',
     fontWeight: '500',
+    fontSize: 15, // Slightly larger font
   },
   selectedWeekdayOptionText: {
     color: '#15E8FE',
@@ -624,11 +636,12 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
+    marginTop: 12,
+    marginBottom: 8,
   },
   cancelButton: {
     flex: 1,
-    padding: 12,
+    padding: 14,
     borderRadius: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     marginRight: 8,
@@ -637,10 +650,11 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     color: '#FFFFFF',
     fontWeight: '600',
+    fontSize: 16,
   },
   saveButton: {
     flex: 1,
-    padding: 12,
+    padding: 14,
     borderRadius: 8,
     backgroundColor: '#15E8FE',
     alignItems: 'center',
@@ -648,6 +662,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: '#000000',
     fontWeight: '600',
+    fontSize: 16,
   },
   disabledButton: {
     opacity: 0.6,

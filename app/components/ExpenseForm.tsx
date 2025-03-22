@@ -9,14 +9,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Modal,
-  Button
+  Modal
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-
 import type { Expense } from '../database/schema';
 import { useExpenses } from '../contexts/ExpensesContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 import CategoryPicker from './CategoryPicker';
 import { formatFullDate, getISODate } from '../utils/dateUtils';
 import { parseAmount, validateAmount } from '../utils/currencyUtils';
@@ -33,6 +32,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
   onCancel
 }) => {
   const { categories, addNewExpense, updateExistingExpense } = useExpenses();
+  const { currentCurrency } = useCurrency();
 
   const [amount, setAmount] = useState(initialExpense ? initialExpense.amount.toString() : '');
   const [category, setCategory] = useState<string | null>(initialExpense ? initialExpense.category : null);
@@ -81,7 +81,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
       const expenseData = {
         amount: parseAmount(amount),
         // biome-ignore lint/style/noNonNullAssertion: <explanation>
-        category: category!, /* TODO Non-null assertion is safe after validation */
+        category: category!,
         date: getISODate(date),
         note: note.trim()
       };
@@ -137,9 +137,9 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
     ];
 
     const currentYear = new Date().getFullYear();
-    const years = Array.from({length: 10}, (_, i) => currentYear - i);
+    const years = Array.from({ length: 6 }, (_, i) => currentYear - i);
 
-    const days = Array.from({length: 31}, (_, i) => i + 1);
+    const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
     const yearOptions = years.map(year => (
       <TouchableOpacity
@@ -159,9 +159,10 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
     const monthOptions = months.map((month, index) => (
       <TouchableOpacity
-      key={`month-${
+        key={`month-${
           // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-          index}`}
+          index
+        }`}
         style={[styles.pickerOption, tempDate.getMonth() === index && styles.selectedPickerOption]}
         onPress={() => {
           const newDate = new Date(tempDate);
@@ -254,7 +255,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
         <View style={styles.formGroup}>
           <Text style={styles.label}>Amount</Text>
           <View style={styles.amountInputContainer}>
-            <Text style={styles.currencySymbol}>$</Text>
+            <Text style={styles.currencySymbol}>{currentCurrency.symbol}</Text>
             <TextInput
               style={styles.amountInput}
               value={amount}
@@ -484,7 +485,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   selectedPickerOptionText: {
-    color: '#50E3C2',
+    color: '#15E8FE',
     fontWeight: '600',
   },
   datePickerButtons: {

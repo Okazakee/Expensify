@@ -10,9 +10,9 @@ import {
   Alert
 } from 'react-native';
 
-
 import { useBudget } from '../contexts/BudgetContext';
 import { usePeriod } from '../contexts/PeriodContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 import { formatCurrency, parseAmount } from '../utils/currencyUtils';
 
 interface BudgetEditorProps {
@@ -23,6 +23,7 @@ interface BudgetEditorProps {
 const BudgetEditor: React.FC<BudgetEditorProps> = ({ isVisible, onClose }) => {
   const { currentBudget, setBudgetForCurrentPeriod, clearBudgetForCurrentPeriod } = useBudget();
   const { selectedMonthName, selectedYear } = usePeriod();
+  const { currentCurrency } = useCurrency();
 
   const [budgetInput, setBudgetInput] = useState(
     currentBudget !== null ? currentBudget.toString() : ''
@@ -71,7 +72,7 @@ const BudgetEditor: React.FC<BudgetEditorProps> = ({ isVisible, onClose }) => {
           </Text>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.currencySymbol}>$</Text>
+            <Text style={styles.currencySymbol}>{currentCurrency.symbol}</Text>
             <TextInput
               style={styles.input}
               value={budgetInput}
