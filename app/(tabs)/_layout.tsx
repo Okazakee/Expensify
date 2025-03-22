@@ -43,6 +43,7 @@ export default function TabsLayout() {
         name="add-transaction"
         options={{
           title: '',
+          tabBarLabel: () => null,
           tabBarIcon: () => (
             <View style={styles.addButtonContainer}>
               <View style={styles.addButtonBackground}>

@@ -37,7 +37,7 @@ const IncomeSection: React.FC<IncomeSectionProps> = () => {
 
   const handleManageTransactions = () => {
     // Navigate to transactions management screen
-    router.push('/transactions');
+    router.push('/screens/TransactionsScreen');
   };
 
   return (

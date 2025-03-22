@@ -10,7 +10,6 @@ import {
   Alert,
   ScrollView
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 import { useRecurringTransactions } from '../contexts/RecurringTransactionsContext';
 import { useTransactions } from '../contexts/TransactionsContext';
@@ -474,13 +473,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 8,
-    padding: 12,
+    padding: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     marginBottom: 18,
-    height: 56, // Slightly larger height
+    height: 64,
   },
   currencySymbol: {
-    fontSize: 22, // Slightly larger font size
+    fontSize: 22,
     fontWeight: '600',
     color: '#FFFFFF',
     marginRight: 10,
@@ -488,7 +487,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: 22, // Slightly larger font size
+    fontSize: 20,
     fontWeight: '600',
     color: '#FFFFFF',
   },
