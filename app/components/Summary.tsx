@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   editButton: {
     marginLeft: 'auto',
     paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingVertical: 6,
     backgroundColor: 'rgba(80, 202, 227, 0.2)',
     borderRadius: 4
   },

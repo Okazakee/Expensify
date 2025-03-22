@@ -20,17 +20,18 @@ interface RecurringTransaction {
   amount: number;
   note: string;
   isIncome: boolean;
-  recurrenceType: 'monthly' | 'yearly' | 'custom';
-  startDate?: string;
-  endDate?: string;
+  recurrenceType: 'monthly' | 'yearly' | 'weekly';
+  day?: number;
+  month?: number;
+  weekday?: number;
 }
 
 // Temporary mock data for recurring transactions
 const MOCK_TRANSACTIONS: RecurringTransaction[] = [
-  { id: '1', amount: 1200, note: 'Salary', isIncome: true, recurrenceType: 'monthly' },
-  { id: '2', amount: 500, note: 'Rent', isIncome: false, recurrenceType: 'monthly' },
-  { id: '3', amount: 3000, note: 'Bonus', isIncome: true, recurrenceType: 'yearly' },
-  { id: '4', amount: 200, note: 'Insurance', isIncome: false, recurrenceType: 'monthly' },
+  { id: '1', amount: 1200, note: 'Salary', isIncome: true, recurrenceType: 'monthly', day: 1 },
+  { id: '2', amount: 500, note: 'Rent', isIncome: false, recurrenceType: 'monthly', day: 15 },
+  { id: '3', amount: 3000, note: 'Bonus', isIncome: true, recurrenceType: 'yearly', month: 12, day: 15 },
+  { id: '4', amount: 200, note: 'Insurance', isIncome: false, recurrenceType: 'weekly', weekday: 1 },
 ];
 
 const TransactionsScreen = () => {
@@ -82,11 +83,18 @@ const TransactionsScreen = () => {
     const amountPrefix = item.isIncome ? '+ ' : '- ';
     const amountColor = item.isIncome ? '#15E8FE' : '#FF6B6B';
 
-    let recurrenceText = 'Monthly';
-    if (item.recurrenceType === 'yearly') {
-      recurrenceText = 'Yearly';
-    } else if (item.recurrenceType === 'custom') {
-      recurrenceText = 'Custom';
+    // Get recurrence text with details
+    let recurrenceText = '';
+    if (item.recurrenceType === 'monthly') {
+      recurrenceText = `Monthly (Day ${item.day})`;
+    } else if (item.recurrenceType === 'yearly') {
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthName = item.month && item.month >= 1 && item.month <= 12 ? monthNames[item.month - 1] : '';
+      recurrenceText = `Yearly (${monthName} ${item.day})`;
+    } else if (item.recurrenceType === 'weekly') {
+      const weekdayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const weekdayName = item.weekday && item.weekday >= 1 && item.weekday <= 7 ? weekdayNames[item.weekday - 1] : '';
+      recurrenceText = `Weekly (${weekdayName})`;
     }
 
     return (

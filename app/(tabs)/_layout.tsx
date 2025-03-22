@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(18, 18, 18, 1)',
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 1)',
-    height: 80,
+    height: 70,
     paddingBottom: 20,
   },
   tabLabel: {

@@ -10,12 +10,11 @@ import {
   Alert,
   ScrollView
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 import { formatCurrency, parseAmount } from '../utils/currencyUtils';
 
 // Transaction recurrence types
-type RecurrenceType = 'monthly' | 'yearly' | 'custom';
+type RecurrenceType = 'monthly' | 'yearly' | 'weekly';
 
 // Transaction interface
 interface RecurringTransaction {
@@ -24,8 +23,9 @@ interface RecurringTransaction {
   note: string;
   isIncome: boolean;
   recurrenceType: RecurrenceType;
-  startDate?: string;
-  endDate?: string;
+  day?: number;
+  month?: number;
+  weekday?: number;
 }
 
 interface TransactionEditorProps {
@@ -45,12 +45,15 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
   const [note, setNote] = useState<string>('');
   const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>('monthly');
 
-  // For custom date range
-  const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
-  const [startDate, setStartDate] = useState<Date>(new Date());
-  const [endDate, setEndDate] = useState<Date>(new Date());
-  const [tempDate, setTempDate] = useState<Date>(new Date());
-  const [selectingStartDate, setSelectingStartDate] = useState<boolean>(true);
+  // For monthly recurrence
+  const [selectedDay, setSelectedDay] = useState<number>(1);
+
+  // For yearly recurrence
+  const [selectedMonth, setSelectedMonth] = useState<number>(1);
+  const [selectedYearlyDay, setSelectedYearlyDay] = useState<number>(1);
+
+  // For weekly recurrence
+  const [selectedWeekday, setSelectedWeekday] = useState<number>(1); // 1 = Monday, 7 = Sunday
 
   // Set initial values if editing an existing transaction
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
@@ -60,20 +63,27 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
       setNote(initialTransaction.note || '');
       setRecurrenceType(initialTransaction.recurrenceType || 'monthly');
 
-      if (initialTransaction.startDate) {
-        setStartDate(new Date(initialTransaction.startDate));
+      if (initialTransaction.day) {
+        setSelectedDay(initialTransaction.day);
+        setSelectedYearlyDay(initialTransaction.day);
       }
 
-      if (initialTransaction.endDate) {
-        setEndDate(new Date(initialTransaction.endDate));
+      if (initialTransaction.month) {
+        setSelectedMonth(initialTransaction.month);
+      }
+
+      if (initialTransaction.weekday) {
+        setSelectedWeekday(initialTransaction.weekday);
       }
     } else {
       // Reset form for new transactions
       setAmount('');
       setNote('');
       setRecurrenceType('monthly');
-      setStartDate(new Date());
-      setEndDate(new Date());
+      setSelectedDay(1);
+      setSelectedMonth(1);
+      setSelectedYearlyDay(1);
+      setSelectedWeekday(1);
     }
   }, [initialTransaction, isVisible]);
 
@@ -87,16 +97,24 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
         return;
       }
 
-      // Prepare transaction data
+      // Prepare transaction data based on recurrence type
       const transactionData: RecurringTransaction = {
         amount: parsedAmount,
         note,
         recurrenceType,
-        startDate: recurrenceType === 'custom' ? startDate.toISOString() : undefined,
-        endDate: recurrenceType === 'custom' ? endDate.toISOString() : undefined,
         isIncome,
         id: initialTransaction ? initialTransaction.id : Date.now().toString()
       };
+
+      // Add specific properties based on recurrence type
+      if (recurrenceType === 'monthly') {
+        transactionData.day = selectedDay;
+      } else if (recurrenceType === 'yearly') {
+        transactionData.month = selectedMonth;
+        transactionData.day = selectedYearlyDay;
+      } else if (recurrenceType === 'weekly') {
+        transactionData.weekday = selectedWeekday;
+      }
 
       console.log('Saving transaction', transactionData);
 
@@ -120,146 +138,143 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
     onClose();
   };
 
-  const openDatePicker = (isStart: boolean) => {
-    setSelectingStartDate(isStart);
-    setTempDate(isStart ? startDate : endDate);
-    setShowDatePicker(true);
+  // Generate options for day selection (1-31)
+  const renderDayOptions = () => {
+    const days = Array.from({length: 31}, (_, i) => i + 1);
+    return (
+      <View style={styles.selectorContainer}>
+        <Text style={styles.sectionLabel}>Day of month</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.daysContainer}>
+          {days.map(day => (
+            <TouchableOpacity
+              key={`day-${day}`}
+              style={[
+                styles.dayOption,
+                selectedDay === day && styles.selectedDayOption
+              ]}
+              onPress={() => setSelectedDay(day)}
+            >
+              <Text style={[
+                styles.dayOptionText,
+                selectedDay === day && styles.selectedDayOptionText
+              ]}>
+                {day}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
   };
 
-  const handleConfirmDate = () => {
-    if (selectingStartDate) {
-      setStartDate(tempDate);
-    } else {
-      setEndDate(tempDate);
-    }
-    setShowDatePicker(false);
-  };
-
-  // Simple date picker UI
-  const renderDatePicker = () => {
+  // Generate options for month selection (Jan-Dec)
+  const renderMonthOptions = () => {
     const months = [
       'January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December'
     ];
 
-    const currentYear = new Date().getFullYear();
-    const years = Array.from({length: 10}, (_, i) => currentYear - i);
-
-    const days = Array.from({length: 31}, (_, i) => i + 1);
-
-    const yearOptions = years.map(year => (
-      <TouchableOpacity
-        key={`year-${year}`}
-        style={[styles.pickerOption, tempDate.getFullYear() === year && styles.selectedPickerOption]}
-        onPress={() => {
-          const newDate = new Date(tempDate);
-          newDate.setFullYear(year);
-          setTempDate(newDate);
-        }}
-      >
-        <Text style={[styles.pickerOptionText, tempDate.getFullYear() === year && styles.selectedPickerOptionText]}>
-          {year}
-        </Text>
-      </TouchableOpacity>
-    ));
-
-    const monthOptions = months.map((month, index) => (
-      <TouchableOpacity
-        key={`month-${
-          // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-          index
-        }`}
-        style={[styles.pickerOption, tempDate.getMonth() === index && styles.selectedPickerOption]}
-        onPress={() => {
-          const newDate = new Date(tempDate);
-          newDate.setMonth(index);
-          setTempDate(newDate);
-        }}
-      >
-        <Text style={[styles.pickerOptionText, tempDate.getMonth() === index && styles.selectedPickerOptionText]}>
-          {month}
-        </Text>
-      </TouchableOpacity>
-    ));
-
-    const dayOptions = days.map(day => (
-      <TouchableOpacity
-        key={`day-${day}`}
-        style={[styles.pickerOption, tempDate.getDate() === day && styles.selectedPickerOption]}
-        onPress={() => {
-          const newDate = new Date(tempDate);
-          newDate.setDate(day);
-          setTempDate(newDate);
-        }}
-      >
-        <Text style={[styles.pickerOptionText, tempDate.getDate() === day && styles.selectedPickerOptionText]}>
-          {day}
-        </Text>
-      </TouchableOpacity>
-    ));
-
     return (
-      <Modal
-        visible={showDatePicker}
-        transparent={true}
-        animationType="slide"
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.datePickerContainer}>
-            <Text style={styles.datePickerTitle}>
-              Select {selectingStartDate ? "Start" : "End"} Date
-            </Text>
-
-            <View style={styles.datePickerContent}>
-              <View style={styles.pickerSection}>
-                <Text style={styles.pickerLabel}>Year</Text>
-                <ScrollView style={styles.pickerScrollView}>
-                  {yearOptions}
-                </ScrollView>
-              </View>
-
-              <View style={styles.pickerSection}>
-                <Text style={styles.pickerLabel}>Month</Text>
-                <ScrollView style={styles.pickerScrollView}>
-                  {monthOptions}
-                </ScrollView>
-              </View>
-
-              <View style={styles.pickerSection}>
-                <Text style={styles.pickerLabel}>Day</Text>
-                <ScrollView style={styles.pickerScrollView}>
-                  {dayOptions}
-                </ScrollView>
-              </View>
-            </View>
-
-            <View style={styles.datePickerButtons}>
-              <TouchableOpacity
-                style={[styles.datePickerButton, styles.cancelDateButton]}
-                onPress={() => setShowDatePicker(false)}
-              >
-                <Text style={styles.cancelDateButtonText}>Cancel</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.datePickerButton, styles.confirmDateButton]}
-                onPress={handleConfirmDate}
-              >
-                <Text style={styles.confirmDateButtonText}>Confirm</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <View style={styles.selectorContainer}>
+        <Text style={styles.sectionLabel}>Month</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.monthsContainer}>
+          {months.map((month, index) => (
+            <TouchableOpacity
+              key={`month-${
+                // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                index
+              }`}
+              style={[
+                styles.monthOption,
+                selectedMonth === index + 1 && styles.selectedMonthOption
+              ]}
+              onPress={() => setSelectedMonth(index + 1)}
+            >
+              <Text style={[
+                styles.monthOptionText,
+                selectedMonth === index + 1 && styles.selectedMonthOptionText
+              ]}>
+                {month.substring(0, 3)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
     );
   };
 
-  const formatDate = (date: Date): string => {
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  // Generate options for yearly day selection (1-31)
+  const renderYearlyDayOptions = () => {
+    const days = Array.from({length: 31}, (_, i) => i + 1);
+    return (
+      <View style={styles.selectorContainer}>
+        <Text style={styles.sectionLabel}>Day of month</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.daysContainer}>
+          {days.map(day => (
+            <TouchableOpacity
+              key={`yearly-day-${day}`}
+              style={[
+                styles.dayOption,
+                selectedYearlyDay === day && styles.selectedDayOption
+              ]}
+              onPress={() => setSelectedYearlyDay(day)}
+            >
+              <Text style={[
+                styles.dayOptionText,
+                selectedYearlyDay === day && styles.selectedDayOptionText
+              ]}>
+                {day}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
+
+  // Generate options for weekday selection (Mon-Sun)
+  const renderWeekdayOptions = () => {
+    const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+    return (
+      <View style={styles.selectorContainer}>
+        <Text style={styles.sectionLabel}>Day of week</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.weekdaysContainer}>
+          {weekdays.map((weekday, index) => (
+            <TouchableOpacity
+              key={`weekday-${
+                // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                index
+              }`}
+              style={[
+                styles.weekdayOption,
+                selectedWeekday === index + 1 && styles.selectedWeekdayOption
+              ]}
+              onPress={() => setSelectedWeekday(index + 1)}
+            >
+              <Text style={[
+                styles.weekdayOptionText,
+                selectedWeekday === index + 1 && styles.selectedWeekdayOptionText
+              ]}>
+                {weekday.substring(0, 3)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
   };
 
   return (
@@ -268,153 +283,141 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
       transparent={true}
       animationType="slide"
     >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>
-            {initialTransaction
-              ? `Edit ${isIncome ? 'Income' : 'Expense'}`
-              : `Add Recurring ${isIncome ? 'Income' : 'Expense'}`}
-          </Text>
+      <ScrollView style={styles.scrollContainer}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              {initialTransaction
+                ? `Edit ${isIncome ? 'Income' : 'Expense'}`
+                : `Add Recurring ${isIncome ? 'Income' : 'Expense'}`}
+            </Text>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.currencySymbol}>$</Text>
-            <TextInput
-              style={styles.input}
-              value={amount}
-              onChangeText={setAmount}
-              placeholder="Enter amount"
-              placeholderTextColor="rgba(255, 255, 255, 0.3)"
-              keyboardType="decimal-pad"
-              autoFocus
-            />
-          </View>
-
-          <View style={styles.noteContainer}>
-            <Text style={styles.sectionLabel}>Description (Optional)</Text>
-            <TextInput
-              style={styles.noteInput}
-              value={note}
-              onChangeText={setNote}
-              placeholder="Add a note"
-              placeholderTextColor="rgba(255, 255, 255, 0.3)"
-              multiline
-            />
-          </View>
-
-          <View style={styles.recurrenceContainer}>
-            <Text style={styles.sectionLabel}>Recurrence</Text>
-            <View style={styles.recurrenceOptions}>
-              <TouchableOpacity
-                style={[
-                  styles.recurrenceOption,
-                  recurrenceType === 'monthly' && styles.selectedRecurrenceOption
-                ]}
-                onPress={() => {
-                  setRecurrenceType('monthly');
-                }}
-              >
-                <Text style={[
-                  styles.recurrenceOptionText,
-                  recurrenceType === 'monthly' && styles.selectedRecurrenceOptionText
-                ]}>Monthly</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.recurrenceOption,
-                  recurrenceType === 'yearly' && styles.selectedRecurrenceOption
-                ]}
-                onPress={() => {
-                  setRecurrenceType('yearly');
-                }}
-              >
-                <Text style={[
-                  styles.recurrenceOptionText,
-                  recurrenceType === 'yearly' && styles.selectedRecurrenceOptionText
-                ]}>Yearly</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.recurrenceOption,
-                  recurrenceType === 'custom' && styles.selectedRecurrenceOption
-                ]}
-                onPress={() => {
-                  setRecurrenceType('custom');
-                }}
-              >
-                <Text style={[
-                  styles.recurrenceOptionText,
-                  recurrenceType === 'custom' && styles.selectedRecurrenceOptionText
-                ]}>Custom</Text>
-              </TouchableOpacity>
+            <View style={styles.inputContainer}>
+              <Text style={styles.currencySymbol}>$</Text>
+              <TextInput
+                style={styles.input}
+                value={amount}
+                onChangeText={setAmount}
+                placeholder="Enter amount"
+                placeholderTextColor="rgba(255, 255, 255, 0.3)"
+                keyboardType="decimal-pad"
+                autoFocus
+              />
             </View>
-          </View>
 
-          {recurrenceType === 'custom' && (
-            <View style={styles.dateRangeContainer}>
-              <Text style={styles.sectionLabel}>Date Range</Text>
+            <View style={styles.noteContainer}>
+              <Text style={styles.sectionLabel}>Description (Optional)</Text>
+              <TextInput
+                style={styles.noteInput}
+                value={note}
+                onChangeText={setNote}
+                placeholder="Add a note"
+                placeholderTextColor="rgba(255, 255, 255, 0.3)"
+                multiline
+              />
+            </View>
 
-              <View style={styles.dateRow}>
-                <Text style={styles.dateLabel}>Start:</Text>
+            <View style={styles.recurrenceContainer}>
+              <Text style={styles.sectionLabel}>Recurrence</Text>
+              <View style={styles.recurrenceOptions}>
                 <TouchableOpacity
-                  style={styles.dateButton}
-                  onPress={() => openDatePicker(true)}
+                  style={[
+                    styles.recurrenceOption,
+                    recurrenceType === 'monthly' && styles.selectedRecurrenceOption
+                  ]}
+                  onPress={() => {
+                    setRecurrenceType('monthly');
+                  }}
                 >
-                  <Text style={styles.dateText}>{formatDate(startDate)}</Text>
-                  <Ionicons name="calendar-outline" size={18} color="white" />
+                  <Text style={[
+                    styles.recurrenceOptionText,
+                    recurrenceType === 'monthly' && styles.selectedRecurrenceOptionText
+                  ]}>Monthly</Text>
                 </TouchableOpacity>
-              </View>
 
-              <View style={styles.dateRow}>
-                <Text style={styles.dateLabel}>End:</Text>
                 <TouchableOpacity
-                  style={styles.dateButton}
-                  onPress={() => openDatePicker(false)}
+                  style={[
+                    styles.recurrenceOption,
+                    recurrenceType === 'yearly' && styles.selectedRecurrenceOption
+                  ]}
+                  onPress={() => {
+                    setRecurrenceType('yearly');
+                  }}
                 >
-                  <Text style={styles.dateText}>{formatDate(endDate)}</Text>
-                  <Ionicons name="calendar-outline" size={18} color="white" />
+                  <Text style={[
+                    styles.recurrenceOptionText,
+                    recurrenceType === 'yearly' && styles.selectedRecurrenceOptionText
+                  ]}>Yearly</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.recurrenceOption,
+                    recurrenceType === 'weekly' && styles.selectedRecurrenceOption
+                  ]}
+                  onPress={() => {
+                    setRecurrenceType('weekly');
+                  }}
+                >
+                  <Text style={[
+                    styles.recurrenceOptionText,
+                    recurrenceType === 'weekly' && styles.selectedRecurrenceOptionText
+                  ]}>Weekly</Text>
                 </TouchableOpacity>
               </View>
             </View>
-          )}
 
-          <View style={styles.buttonRow}>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={handleCancel}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
+            {/* Render specific options based on recurrence type */}
+            {recurrenceType === 'monthly' && renderDayOptions()}
 
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={handleSave}
-            >
-              <Text style={styles.saveButtonText}>Save</Text>
-            </TouchableOpacity>
+            {recurrenceType === 'yearly' && (
+              <>
+                {renderMonthOptions()}
+                {renderYearlyDayOptions()}
+              </>
+            )}
+
+            {recurrenceType === 'weekly' && renderWeekdayOptions()}
+
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={handleCancel}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={handleSave}
+              >
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
-
-      {renderDatePicker()}
+      </ScrollView>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
+  scrollContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingVertical: 50,
   },
   modalContent: {
     width: '90%',
     backgroundColor: '#1E1E1E',
     borderRadius: 12,
     padding: 20,
-    maxHeight: '80%',
+    alignSelf: 'center',
   },
   modalTitle: {
     fontSize: 20,
@@ -493,33 +496,91 @@ const styles = StyleSheet.create({
     color: '#15E8FE',
     fontWeight: '600',
   },
-  dateRangeContainer: {
+  // Day selector styles
+  selectorContainer: {
     marginBottom: 16,
   },
-  dateRow: {
+  daysContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
+    paddingVertical: 8,
   },
-  dateLabel: {
-    width: 50,
-    fontSize: 14,
-    color: '#FFFFFF',
-  },
-  dateButton: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  dayOption: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 8,
-    padding: 12,
+    justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginRight: 8,
   },
-  dateText: {
-    fontSize: 14,
+  selectedDayOption: {
+    backgroundColor: 'rgba(21, 232, 254, 0.2)',
+    borderColor: '#15E8FE',
+    borderWidth: 1,
+  },
+  dayOptionText: {
     color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  selectedDayOptionText: {
+    color: '#15E8FE',
+    fontWeight: '600',
+  },
+  // Month selector styles
+  monthsContainer: {
+    flexDirection: 'row',
+    paddingVertical: 8,
+  },
+  monthOption: {
+    minWidth: 60,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginRight: 8,
+    paddingHorizontal: 10,
+  },
+  selectedMonthOption: {
+    backgroundColor: 'rgba(21, 232, 254, 0.2)',
+    borderColor: '#15E8FE',
+    borderWidth: 1,
+  },
+  monthOptionText: {
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  selectedMonthOptionText: {
+    color: '#15E8FE',
+    fontWeight: '600',
+  },
+  // Weekday selector styles
+  weekdaysContainer: {
+    flexDirection: 'row',
+    paddingVertical: 8,
+  },
+  weekdayOption: {
+    minWidth: 60,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginRight: 8,
+    paddingHorizontal: 10,
+  },
+  selectedWeekdayOption: {
+    backgroundColor: 'rgba(21, 232, 254, 0.2)',
+    borderColor: '#15E8FE',
+    borderWidth: 1,
+  },
+  weekdayOptionText: {
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  selectedWeekdayOptionText: {
+    color: '#15E8FE',
+    fontWeight: '600',
   },
   buttonRow: {
     flexDirection: 'row',
@@ -548,85 +609,6 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: '#000000',
     fontWeight: '600',
-  },
-  // Date picker styles
-  datePickerContainer: {
-    width: '90%',
-    backgroundColor: '#1E1E1E',
-    borderRadius: 12,
-    padding: 16,
-    maxHeight: '80%',
-  },
-  datePickerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  datePickerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  pickerSection: {
-    flex: 1,
-    marginHorizontal: 4,
-  },
-  pickerLabel: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  pickerScrollView: {
-    height: 200,
-  },
-  pickerOption: {
-    padding: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 8,
-  },
-  selectedPickerOption: {
-    backgroundColor: 'rgba(80, 227, 194, 0.2)',
-  },
-  pickerOptionText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-  },
-  selectedPickerOptionText: {
-    color: '#50E3C2',
-    fontWeight: '600',
-  },
-  datePickerButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  datePickerButton: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelDateButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginRight: 8,
-  },
-  confirmDateButton: {
-    backgroundColor: '#50E3C2',
-    marginLeft: 8,
-  },
-  cancelDateButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  confirmDateButtonText: {
-    color: '#000000',
-    fontSize: 16,
-    fontWeight: '500',
   },
 });
 
