@@ -33,14 +33,14 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="expenses"
+        name="transactions"
         options={{
-          title: 'Expenses',
+          title: 'Transactions',
           tabBarIcon: ({ color }) => <TabBarIcon name="list" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="add-expense"
+        name="add-transaction"
         options={{
           title: '',
           tabBarIcon: () => (

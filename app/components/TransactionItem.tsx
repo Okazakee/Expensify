@@ -3,22 +3,22 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDate } from '../utils/dateUtils';
 import { formatCurrency } from '../utils/currencyUtils';
-import type { Expense } from '../database/schema';
-import { useExpenses } from '../contexts/ExpensesContext';
+import type { Transaction } from '../database/schema';
+import { useTransactions } from '../contexts/TransactionsContext';
 
-interface ExpenseItemProps {
-  expense: Expense;
-  onPress?: (expense: Expense) => void;
+interface TransactionItemProps {
+  transaction: Transaction;
+  onPress?: (transaction: Transaction) => void;
 }
 
-const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, onPress }) => {
-  const { categories } = useExpenses();
+const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, onPress }) => {
+  const { categories } = useTransactions();
 
-  const category = categories.find(c => c.id === expense.category);
+  const category = categories.find(c => c.id === transaction.category);
 
   const handlePress = () => {
     if (onPress) {
-      onPress(expense);
+      onPress(transaction);
     }
   };
 
@@ -29,19 +29,23 @@ const ExpenseItem: React.FC<ExpenseItemProps> = ({ expense, onPress }) => {
   return (
     <TouchableOpacity style={styles.container} onPress={handlePress}>
       <View style={[styles.categoryIcon, { backgroundColor: category.color }]}>
-        {/* TODO fix type later */}
         {/* biome-ignore lint/suspicious/noExplicitAny: <explanation> */}
         <Ionicons name={category.icon as any} size={18} color="#000000" />
       </View>
 
       <View style={styles.detailsContainer}>
         <Text style={styles.categoryName}>{category.name}</Text>
-        <Text style={styles.note}>{expense.note || 'No description'}</Text>
+        <Text style={styles.note}>{transaction.note || 'No description'}</Text>
       </View>
 
       <View style={styles.amountContainer}>
-        <Text style={styles.amount}>{formatCurrency(expense.amount)}</Text>
-        <Text style={styles.date}>{formatDate(expense.date)}</Text>
+        <Text style={[
+          styles.amount,
+          transaction.isIncome ? styles.incomeAmount : styles.expenseAmount
+        ]}>
+          {transaction.isIncome ? '+' : '-'} {formatCurrency(transaction.amount)}
+        </Text>
+        <Text style={styles.date}>{formatDate(transaction.date)}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -82,8 +86,13 @@ const styles = StyleSheet.create({
   amount: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#ffffff',
     marginBottom: 4,
+  },
+  incomeAmount: {
+    color: '#4CAF50', // Green color for income
+  },
+  expenseAmount: {
+    color: '#FF6B6B', // Red color for expense
   },
   date: {
     fontSize: 12,
@@ -91,4 +100,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ExpenseItem;
+export default TransactionItem;

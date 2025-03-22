@@ -13,8 +13,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { useRecurringTransactions } from '../contexts/RecurringTransactionsContext';
-import { useExpenses } from '../contexts/ExpensesContext';
-import { formatCurrency, parseAmount } from '../utils/currencyUtils';
+import { useTransactions } from '../contexts/TransactionsContext';
+import { parseAmount } from '../utils/currencyUtils';
 import { useCurrency } from '../contexts/CurrencyContext';
 import HorizontalCategoryPicker from './HorizontalCategoryPicker';
 import type { RecurringTransaction } from '../database/schema';
@@ -36,7 +36,7 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
   initialTransaction = null
 }) => {
   const { addTransaction, updateTransaction } = useRecurringTransactions();
-  const { categories } = useExpenses();
+  const { categories } = useTransactions();
   const { currentCurrency } = useCurrency();
 
   const [amount, setAmount] = useState<string>('');

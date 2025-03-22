@@ -1,24 +1,23 @@
-// app/screens/HomeScreen.tsx
 import React, { useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-import { useExpenses } from '../contexts/ExpensesContext';
+import { useTransactions } from '../contexts/TransactionsContext';
 import { useRecurringTransactions } from '../contexts/RecurringTransactionsContext';
 import Summary from '../components/Summary';
-import ExpenseItem from '../components/ExpenseItem';
-import type { Expense } from '../database/schema';
+import TransactionItem from '../components/TransactionItem';
+import type { Transaction } from '../database/schema';
 import IncomeSection from '../components/IncomeSection';
 
 const HomeScreen = () => {
   const router = useRouter();
   const {
-    currentMonthExpenses,
+    currentPeriodTransactions,
     monthlyTotal,
     isLoading,
     refreshData
-  } = useExpenses();
+  } = useTransactions();
 
   const { processTransactions } = useRecurringTransactions();
   const [refreshing, setRefreshing] = React.useState(false);
@@ -42,7 +41,7 @@ const HomeScreen = () => {
     try {
       // Process any due recurring transactions
       await processTransactions();
-      // Then refresh all expense data
+      // Then refresh all transaction data
       await refreshData();
     } catch (error) {
       console.error('Error during refresh:', error);
@@ -51,20 +50,25 @@ const HomeScreen = () => {
     }
   }, [refreshData, processTransactions]);
 
-  const handleExpensePress = (expense: Expense) => {
+  const handleTransactionPress = (transaction: Transaction) => {
     router.push({
-      pathname: "/expense/[id]",
-      params: { id: expense.id }
+      pathname: "/transaction/[id]",
+      params: { id: transaction.id }
     });
   };
 
-  const handleViewAllExpenses = () => {
-    router.push({ pathname: "/expenses" });
+  const handleViewAllTransactions = () => {
+    router.push({ pathname: "/transactions" });
   };
 
   const handleOpenSettings = () => {
     router.push({ pathname: "/settings" });
   };
+
+  // Get the most recent 5 transactions, sorted by date
+  const recentTransactions = [...currentPeriodTransactions]
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 5);
 
   return (
     <View style={styles.container}>
@@ -90,34 +94,37 @@ const HomeScreen = () => {
         }
       >
         {/* Budget Summary */}
-        <Summary spent={monthlyTotal} />
+        <Summary 
+          spent={monthlyTotal.expenses} 
+          income={monthlyTotal.incomes}
+          net={monthlyTotal.net}
+        />
         <IncomeSection />
 
-        {/* Monthly Expenses */}
+        {/* Recent Transactions */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Monthly Expenses</Text>
-          <TouchableOpacity onPress={handleViewAllExpenses}>
+          <Text style={styles.sectionTitle}>Recent Transactions</Text>
+          <TouchableOpacity onPress={handleViewAllTransactions}>
             <Text style={styles.seeAllText}>See All</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.expensesContainer}>
+        <View style={styles.transactionsContainer}>
           {isLoading ? (
-            <Text style={styles.emptyText}>Loading expenses...</Text>
-          ) : currentMonthExpenses.length === 0 ? (
-            <Text style={styles.emptyText}>No expenses yet. Tap the "+" button to add one.</Text>
+            <Text style={styles.emptyText}>Loading transactions...</Text>
+          ) : recentTransactions.length === 0 ? (
+            <Text style={styles.emptyText}>No transactions yet. Tap the "+" button to add one.</Text>
           ) : (
-            currentMonthExpenses.slice(0, 5).map(expense => (
-              <ExpenseItem
-                key={expense.id}
-                expense={expense}
-                onPress={handleExpensePress}
+            recentTransactions.map(transaction => (
+              <TransactionItem
+                key={transaction.id}
+                transaction={transaction}
+                onPress={handleTransactionPress}
               />
             ))
           )}
         </View>
       </ScrollView>
-
     </View>
   );
 };
@@ -156,7 +163,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#15E8FE',
   },
-  expensesContainer: {
+  transactionsContainer: {
     marginBottom: 80,
   },
   emptyText: {

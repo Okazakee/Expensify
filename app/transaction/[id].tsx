@@ -3,43 +3,42 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Alert } from 'r
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { useExpenses } from '@/app/contexts/ExpensesContext';
-import { formatFullDate } from '@/app/utils/dateUtils';
-import { formatCurrency } from '@/app/utils/currencyUtils';
-import type { Expense } from '@/app/database/schema';
+import { useTransactions } from '../contexts/TransactionsContext';
+import { formatFullDate } from '../utils/dateUtils';
+import { formatCurrency } from '../utils/currencyUtils';
+import type { Transaction } from '../database/schema';
 
-export default function ExpenseDetailScreen() {
+export default function TransactionDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { expenses, categories, removeExpense } = useExpenses();
-  const [expense, setExpense] = useState<Expense | null>(null);
+  const { transactions, categories, removeTransaction } = useTransactions();
+  const [transaction, setTransaction] = useState<Transaction | null>(null);
   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   const [category, setCategory] = useState<any>(null);
 
   useEffect(() => {
     if (typeof id !== 'string') return;
 
-    const foundExpense = expenses.find(e => e.id === id);
-    if (foundExpense) {
-      setExpense(foundExpense);
-      const foundCategory = categories.find(c => c.id === foundExpense.category);
+    const foundTransaction = transactions.find(t => t.id === id);
+    if (foundTransaction) {
+      setTransaction(foundTransaction);
+      const foundCategory = categories.find(c => c.id === foundTransaction.category);
       setCategory(foundCategory);
     }
-  }, [id, expenses, categories]);
+  }, [id, transactions, categories]);
 
   const handleEdit = () => {
-    if (expense) {
-      // Navigate to edit screen with the ID in the URL
-      router.push(`/expense/edit/${expense.id}`);
+    if (transaction) {
+      router.push(`/transaction/edit/${transaction.id}`);
     }
   };
 
   const handleDelete = () => {
-    if (!expense) return;
+    if (!transaction) return;
 
     Alert.alert(
-      "Delete Expense",
-      "Are you sure you want to delete this expense? This action cannot be undone.",
+      transaction.isIncome ? "Delete Income" : "Delete Expense",
+      `Are you sure you want to delete this ${transaction.isIncome ? 'income' : 'expense'}? This action cannot be undone.`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -47,10 +46,10 @@ export default function ExpenseDetailScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await removeExpense(expense.id);
+              await removeTransaction(transaction.id);
               router.back();
             } catch (error) {
-              console.error('Failed to delete expense:', error);
+              console.error('Failed to delete transaction:', error);
             }
           }
         }
@@ -58,12 +57,12 @@ export default function ExpenseDetailScreen() {
     );
   };
 
-  if (!expense || !category) {
+  if (!transaction || !category) {
     return (
       <SafeAreaView style={styles.container}>
         <Stack.Screen
           options={{
-            title: 'Expense Details',
+            title: 'Transaction Details',
             headerStyle: {
               backgroundColor: '#1A1A1A',
             },
@@ -72,7 +71,7 @@ export default function ExpenseDetailScreen() {
           }}
         />
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading expense details...</Text>
+          <Text style={styles.loadingText}>Loading transaction details...</Text>
         </View>
       </SafeAreaView>
     );
@@ -82,7 +81,7 @@ export default function ExpenseDetailScreen() {
     <SafeAreaView style={styles.container}>
       <Stack.Screen
         options={{
-          title: 'Expense Details',
+          title: transaction.isIncome ? 'Income Details' : 'Expense Details',
           headerStyle: {
             backgroundColor: '#1A1A1A',
           },
@@ -99,22 +98,33 @@ export default function ExpenseDetailScreen() {
             <Ionicons name={category.icon} size={32} color="#000000" />
           </View>
           <Text style={styles.categoryName}>{category.name}</Text>
+          <Text style={[
+            styles.transactionType,
+            transaction.isIncome ? styles.incomeType : styles.expenseType
+          ]}>
+            {transaction.isIncome ? 'Income' : 'Expense'}
+          </Text>
         </View>
 
         <View style={styles.amountContainer}>
           <Text style={styles.amountLabel}>Amount</Text>
-          <Text style={styles.amount}>{formatCurrency(expense.amount)}</Text>
+          <Text style={[
+            styles.amount,
+            transaction.isIncome ? styles.incomeAmount : styles.expenseAmount
+          ]}>
+            {transaction.isIncome ? '+' : '-'} {formatCurrency(transaction.amount)}
+          </Text>
         </View>
 
         <View style={styles.detailItem}>
           <Text style={styles.detailLabel}>Date</Text>
-          <Text style={styles.detailValue}>{formatFullDate(expense.date)}</Text>
+          <Text style={styles.detailValue}>{formatFullDate(transaction.date)}</Text>
         </View>
 
-        {expense.note ? (
+        {transaction.note ? (
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>Note</Text>
-            <Text style={styles.detailValue}>{expense.note}</Text>
+            <Text style={styles.detailValue}>{transaction.note}</Text>
           </View>
         ) : null}
 
@@ -176,6 +186,23 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  transactionType: {
+    fontSize: 16,
+    fontWeight: '500',
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  incomeType: {
+    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+    color: '#4CAF50',
+  },
+  expenseType: {
+    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+    color: '#FF6B6B',
   },
   amountContainer: {
     backgroundColor: '#1E1E1E',
@@ -191,7 +218,12 @@ const styles = StyleSheet.create({
   amount: {
     fontSize: 36,
     fontWeight: '700',
-    color: '#FFFFFF',
+  },
+  incomeAmount: {
+    color: '#4CAF50',
+  },
+  expenseAmount: {
+    color: '#FF6B6B',
   },
   detailItem: {
     backgroundColor: '#1E1E1E',

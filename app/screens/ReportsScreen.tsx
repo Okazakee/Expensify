@@ -7,13 +7,14 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Dimensions,
-  RefreshControl
+  RefreshControl,
+  Switch
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { PieChart, LineChart } from 'react-native-chart-kit';
 
-import { useExpenses } from '../contexts/ExpensesContext';
+import { useTransactions } from '../contexts/TransactionsContext';
 import { formatCurrency } from '../utils/currencyUtils';
 import { getMonthName } from '../utils/dateUtils';
 
@@ -22,14 +23,16 @@ const { width } = Dimensions.get('window');
 const ReportsScreen = () => {
   const {
     categoryTotals,
-    monthlyExpenseData,
+    monthlyData,
     categories,
     monthlyTotal,
     isLoading,
     refreshData
-  } = useExpenses();
+  } = useTransactions();
 
   const [refreshing, setRefreshing] = useState(false);
+  const [showExpenses, setShowExpenses] = useState(true);
+  const [showIncomes, setShowIncomes] = useState(true);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -37,8 +40,8 @@ const ReportsScreen = () => {
     setRefreshing(false);
   }, [refreshData]);
 
-  // Prepare category data for pie chart
-  const pieChartData = categoryTotals.map(item => {
+  // Prepare category data for pie charts
+  const expensesPieChartData = categoryTotals.expenses.map(item => {
     const category = categories.find(c => c.id === item.categoryId);
     return {
       name: category ? category.name : 'Unknown',
@@ -49,16 +52,33 @@ const ReportsScreen = () => {
     };
   }).sort((a, b) => b.amount - a.amount);
 
-  // Prepare monthly data for line chart
+  const incomesPieChartData = categoryTotals.incomes.map(item => {
+    const category = categories.find(c => c.id === item.categoryId);
+    return {
+      name: category ? category.name : 'Unknown',
+      amount: item.total,
+      color: category ? category.color : '#9CA3AF',
+      legendFontColor: '#FFFFFF',
+      legendFontSize: 12
+    };
+  }).sort((a, b) => b.amount - a.amount);
+
+  // Prepare monthly data for line charts
   const lineChartData = {
-    labels: monthlyExpenseData.map(data => getMonthName(data.month).substring(0, 3)),
+    labels: monthlyData.expenses.map(data => getMonthName(data.month).substring(0, 3)),
     datasets: [
       {
-        data: monthlyExpenseData.map(data => data.total),
-        color: () => '#50E3C2',
+        data: monthlyData.expenses.map(data => data.total),
+        color: () => '#FF6B6B', // Red for expenses
+        strokeWidth: 2
+      },
+      {
+        data: monthlyData.incomes.map(data => data.total),
+        color: () => '#4CAF50', // Green for incomes
         strokeWidth: 2
       }
-    ]
+    ],
+    legend: ['Expenses', 'Incomes']
   };
 
   const chartConfig = {
@@ -77,10 +97,17 @@ const ReportsScreen = () => {
     }
   };
 
-  const renderCategoryBreakdown = () => {
-    return pieChartData.map((item, index) => (
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  const renderCategoryBreakdown = (data: any[], total: number, type: 'expense' | 'income') => {
+    if (data.length === 0) {
+      return (
+        <Text style={styles.emptyText}>No {type} data available</Text>
+      );
+    }
+
+    return data.map((item, index) => (
       // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-      <View key={index} style={styles.categoryBreakdownItem}>
+      <View key={`${type}-${index}`} style={styles.categoryBreakdownItem}>
         <View style={styles.categoryLabelContainer}>
           <View style={[styles.categoryColorDot, { backgroundColor: item.color }]} />
           <Text style={styles.categoryLabel}>{item.name}</Text>
@@ -88,7 +115,7 @@ const ReportsScreen = () => {
         <View style={styles.categoryAmountContainer}>
           <Text style={styles.categoryAmount}>{formatCurrency(item.amount)}</Text>
           <Text style={styles.categoryPercentage}>
-            {((item.amount / monthlyTotal) * 100).toFixed(1)}%
+            {((item.amount / total) * 100).toFixed(1)}%
           </Text>
         </View>
       </View>
@@ -110,7 +137,29 @@ const ReportsScreen = () => {
 
       <View style={styles.headerContainer}>
         <Text style={styles.headerTitle}>Financial Analytics</Text>
-        <Text style={styles.headerSubtitle}>Track and analyze your spending patterns</Text>
+        <Text style={styles.headerSubtitle}>Track and analyze your spending and income patterns</Text>
+      </View>
+
+      <View style={styles.toggleContainer}>
+        <View style={styles.toggleOption}>
+          <Text style={styles.toggleLabel}>Expenses</Text>
+          <Switch
+            value={showExpenses}
+            onValueChange={setShowExpenses}
+            trackColor={{ false: '#3e3e3e', true: 'rgba(255, 107, 107, 0.3)' }}
+            thumbColor={showExpenses ? '#FF6B6B' : '#f4f3f4'}
+          />
+        </View>
+        
+        <View style={styles.toggleOption}>
+          <Text style={styles.toggleLabel}>Incomes</Text>
+          <Switch
+            value={showIncomes}
+            onValueChange={setShowIncomes}
+            trackColor={{ false: '#3e3e3e', true: 'rgba(76, 175, 80, 0.3)' }}
+            thumbColor={showIncomes ? '#4CAF50' : '#f4f3f4'}
+          />
+        </View>
       </View>
 
       <ScrollView
@@ -129,39 +178,99 @@ const ReportsScreen = () => {
           <Text style={styles.loadingText}>Loading reports...</Text>
         ) : (
           <>
-            {/* Spending by Category */}
+            {/* Summary Section */}
             <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Spending by Category</Text>
-
-              {pieChartData.length > 0 ? (
-                <>
-                  <View style={styles.chartContainer}>
-                    <PieChart
-                      data={pieChartData}
-                      width={width - 32}
-                      height={200}
-                      chartConfig={chartConfig}
-                      accessor="amount"
-                      backgroundColor="transparent"
-                      paddingLeft="15"
-                      absolute
-                    />
-                  </View>
-
-                  <View style={styles.categoryBreakdownContainer}>
-                    {renderCategoryBreakdown()}
-                  </View>
-                </>
-              ) : (
-                <Text style={styles.emptyText}>No category data available</Text>
-              )}
+              <Text style={styles.sectionTitle}>Monthly Summary</Text>
+              <View style={styles.summaryContainer}>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryLabel}>Income</Text>
+                  <Text style={[styles.summaryValue, styles.incomeValue]}>
+                    {formatCurrency(monthlyTotal.incomes)}
+                  </Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryLabel}>Expenses</Text>
+                  <Text style={[styles.summaryValue, styles.expenseValue]}>
+                    {formatCurrency(monthlyTotal.expenses)}
+                  </Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryLabel}>Net</Text>
+                  <Text style={[
+                    styles.summaryValue, 
+                    monthlyTotal.net >= 0 ? styles.incomeValue : styles.expenseValue
+                  ]}>
+                    {formatCurrency(monthlyTotal.net)}
+                  </Text>
+                </View>
+              </View>
             </View>
+
+            {/* Expenses by Category */}
+            {showExpenses && (
+              <View style={styles.sectionContainer}>
+                <Text style={styles.sectionTitle}>Expenses by Category</Text>
+
+                {expensesPieChartData.length > 0 ? (
+                  <>
+                    <View style={styles.chartContainer}>
+                      <PieChart
+                        data={expensesPieChartData}
+                        width={width - 32}
+                        height={200}
+                        chartConfig={chartConfig}
+                        accessor="amount"
+                        backgroundColor="transparent"
+                        paddingLeft="15"
+                        absolute
+                      />
+                    </View>
+
+                    <View style={styles.categoryBreakdownContainer}>
+                      {renderCategoryBreakdown(expensesPieChartData, monthlyTotal.expenses, 'expense')}
+                    </View>
+                  </>
+                ) : (
+                  <Text style={styles.emptyText}>No expense data available</Text>
+                )}
+              </View>
+            )}
+
+            {/* Income by Category */}
+            {showIncomes && (
+              <View style={styles.sectionContainer}>
+                <Text style={styles.sectionTitle}>Income by Category</Text>
+
+                {incomesPieChartData.length > 0 ? (
+                  <>
+                    <View style={styles.chartContainer}>
+                      <PieChart
+                        data={incomesPieChartData}
+                        width={width - 32}
+                        height={200}
+                        chartConfig={chartConfig}
+                        accessor="amount"
+                        backgroundColor="transparent"
+                        paddingLeft="15"
+                        absolute
+                      />
+                    </View>
+
+                    <View style={styles.categoryBreakdownContainer}>
+                      {renderCategoryBreakdown(incomesPieChartData, monthlyTotal.incomes, 'income')}
+                    </View>
+                  </>
+                ) : (
+                  <Text style={styles.emptyText}>No income data available</Text>
+                )}
+              </View>
+            )}
 
             {/* Monthly Spending Trend */}
             <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Monthly Spending Trend</Text>
+              <Text style={styles.sectionTitle}>Monthly Trends</Text>
 
-              {monthlyExpenseData.length > 0 ? (
+              {(monthlyData.expenses.length > 0 || monthlyData.incomes.length > 0) ? (
                 <View style={styles.chartContainer}>
                   <LineChart
                     data={lineChartData}
@@ -173,6 +282,7 @@ const ReportsScreen = () => {
                       marginVertical: 8,
                       borderRadius: 16
                     }}
+                    fromZero
                   />
                 </View>
               ) : (
@@ -216,6 +326,24 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
     marginBottom: 8,
   },
+  toggleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 10,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    backgroundColor: '#1E1E1E',
+    borderRadius: 8,
+  },
+  toggleOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  toggleLabel: {
+    color: '#FFFFFF',
+    marginRight: 8,
+    fontSize: 16,
+  },
   scrollContent: {
     padding: 16,
     paddingBottom: 40,
@@ -231,6 +359,29 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
     marginBottom: 16,
+  },
+  summaryContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  summaryItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  summaryLabel: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 8,
+  },
+  summaryValue: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  incomeValue: {
+    color: '#4CAF50',
+  },
+  expenseValue: {
+    color: '#FF6B6B',
   },
   chartContainer: {
     alignItems: 'center',

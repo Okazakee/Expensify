@@ -16,13 +16,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { formatCurrency } from '../utils/currencyUtils';
 import TransactionEditor from '../components/TransactionEditor';
 import { useRecurringTransactions } from '../contexts/RecurringTransactionsContext';
-import { useExpenses } from '../contexts/ExpensesContext';
+import { useTransactions } from '../contexts/TransactionsContext';
 import type { RecurringTransaction } from '../database/schema';
 
 const TransactionsScreen = () => {
   const router = useRouter();
   const { transactions, isLoading, refreshTransactions, removeTransaction, processTransactions } = useRecurringTransactions();
-  const { categories } = useExpenses();
+  const { categories } = useTransactions();
 
   const [showEditor, setShowEditor] = useState<boolean>(false);
   const [isAddingIncome, setIsAddingIncome] = useState<boolean>(true);

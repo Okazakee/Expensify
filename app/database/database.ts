@@ -12,6 +12,15 @@ import {
 
 const db = SQLite.openDatabaseSync(DATABASE_NAME);
 
+interface TransactionDB {
+  id: string;
+  amount: number;
+  category: string;
+  date: string;
+  note: string;
+  isIncome: number;
+}
+
 interface RecurringTransactionDB {
   id: string;
   amount: number;
@@ -27,44 +36,36 @@ interface RecurringTransactionDB {
   active: number;
 }
 
-const convertRecurringTransaction = (tx: RecurringTransactionDB): RecurringTransaction => ({
-  id: tx.id,
-  amount: tx.amount,
-  isIncome: Boolean(tx.isIncome),
-  note: tx.note,
-  category: tx.category,
-  recurrenceType: tx.recurrenceType,
-  day: tx.day ?? undefined,
-  month: tx.month ?? undefined,
-  weekday: tx.weekday ?? undefined,
-  lastProcessed: tx.lastProcessed ?? undefined,
-  nextDue: tx.nextDue ?? undefined,
-  active: Boolean(tx.active)
+const convertRecurringTransaction = (transaction: RecurringTransactionDB): RecurringTransaction => ({
+  id: transaction.id,
+  amount: transaction.amount,
+  isIncome: Boolean(transaction.isIncome),
+  note: transaction.note,
+  category: transaction.category,
+  recurrenceType: transaction.recurrenceType,
+  day: transaction.day ?? undefined,
+  month: transaction.month ?? undefined,
+  weekday: transaction.weekday ?? undefined,
+  lastProcessed: transaction.lastProcessed ?? undefined,
+  nextDue: transaction.nextDue ?? undefined,
+  active: Boolean(transaction.active)
 });
 
-// Migration helper to add isIncome column to existing expenses table if needed
 const migrateDatabase = async (): Promise<void> => {
   try {
-    // Check if the transactions table exists
     const tableInfo = await db.getFirstAsync<{ name: string }>(
       "SELECT name FROM sqlite_master WHERE type='table' AND name='transactions'"
     );
 
     if (!tableInfo) {
-      // If transactions table doesn't exist, we need to rename expenses to transactions
-      // and add the isIncome field
       await db.execAsync(`
-        -- Rename expenses table to transactions
         ALTER TABLE IF EXISTS expenses RENAME TO transactions;
-
-        -- Add isIncome column if it doesn't exist
         ALTER TABLE transactions ADD COLUMN isIncome INTEGER NOT NULL DEFAULT 0;
       `);
       console.log('Migrated expenses table to transactions table with isIncome field');
     }
   } catch (error) {
     console.error('Error during migration:', error);
-    // Continue with initialization even if migration fails
   }
 };
 
@@ -77,7 +78,6 @@ export const initDatabase = async (): Promise<void> => {
       ${CREATE_RECURRING_TRANSACTIONS_TABLE}
     `);
 
-    // Migrate existing data if needed
     await migrateDatabase();
 
     const result = await db.getFirstAsync<{ count: number }>(
@@ -102,7 +102,6 @@ export const initDatabase = async (): Promise<void> => {
   }
 };
 
-// Category operations
 export const getCategories = async (): Promise<Category[]> => {
   try {
     return await db.getAllAsync<Category>('SELECT * FROM categories ORDER BY name');
@@ -112,7 +111,22 @@ export const getCategories = async (): Promise<Category[]> => {
   }
 };
 
-// Transaction operations (renamed from Expense operations)
+export const getCategoriesByType = async (isIncome: boolean): Promise<Category[]> => {
+  const incomeCategories = ['salary', 'freelance', 'investment', 'gift', 'refund', 'other_income'];
+  const placeholders = incomeCategories.map(() => '?').join(',');
+
+  try {
+    const query = isIncome
+      ? `SELECT * FROM categories WHERE id IN (${placeholders}) ORDER BY name`
+      : `SELECT * FROM categories WHERE id NOT IN (${placeholders}) ORDER BY name`;
+
+    return await db.getAllAsync<Category>(query, incomeCategories);
+  } catch (error) {
+    console.error('Error fetching categories by type:', error);
+    throw error;
+  }
+};
+
 export const addTransaction = async (transaction: Omit<Transaction, 'id'>): Promise<string> => {
   const id = Date.now().toString();
   try {
@@ -127,48 +141,66 @@ export const addTransaction = async (transaction: Omit<Transaction, 'id'>): Prom
   }
 };
 
+const convertTransaction = (transaction: TransactionDB): Transaction => ({
+  ...transaction,
+  isIncome: Boolean(transaction.isIncome)
+});
+
 export const getTransactions = async (): Promise<Transaction[]> => {
   try {
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    const transactions = await db.getAllAsync<any>('SELECT * FROM transactions ORDER BY date DESC');
-    return transactions.map(tx => ({
-      ...tx,
-      isIncome: Boolean(tx.isIncome)
-    }));
+    const transactions = await db.getAllAsync<TransactionDB>('SELECT * FROM transactions ORDER BY date DESC');
+    return transactions.map(convertTransaction);
   } catch (error) {
     console.error('Error fetching transactions:', error);
     throw error;
   }
 };
 
+export const getTransactionsByType = async (isIncome: boolean): Promise<Transaction[]> => {
+  try {
+    const transactions = await db.getAllAsync<TransactionDB>(
+      'SELECT * FROM transactions WHERE isIncome = ? ORDER BY date DESC',
+      [isIncome ? 1 : 0]
+    );
+    return transactions.map(convertTransaction);
+  } catch (error) {
+    console.error('Error fetching transactions by type:', error);
+    throw error;
+  }
+};
+
 export const getTransactionsByCategory = async (categoryId: string): Promise<Transaction[]> => {
   try {
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    const transactions = await db.getAllAsync<any>(
+    const transactions = await db.getAllAsync<TransactionDB>(
       'SELECT * FROM transactions WHERE category = ? ORDER BY date DESC',
       [categoryId]
     );
-    return transactions.map(tx => ({
-      ...tx,
-      isIncome: Boolean(tx.isIncome)
-    }));
+    return transactions.map(convertTransaction);
   } catch (error) {
     console.error('Error fetching transactions by category:', error);
     throw error;
   }
 };
 
-export const getTransactionsByDateRange = async (startDate: string, endDate: string): Promise<Transaction[]> => {
+export const getTransactionsByDateRange = async (
+  startDate: string,
+  endDate: string,
+  transactionType?: 'income' | 'expense'
+): Promise<Transaction[]> => {
   try {
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    const transactions = await db.getAllAsync<any>(
-      'SELECT * FROM transactions WHERE date BETWEEN ? AND ? ORDER BY date DESC',
-      [startDate, endDate]
-    );
-    return transactions.map(tx => ({
-      ...tx,
-      isIncome: Boolean(tx.isIncome)
-    }));
+    let query = 'SELECT * FROM transactions WHERE date BETWEEN ? AND ?';
+    const params: string[] = [startDate, endDate];
+
+    if (transactionType === 'income') {
+      query += ' AND isIncome = 1';
+    } else if (transactionType === 'expense') {
+      query += ' AND isIncome = 0';
+    }
+
+    query += ' ORDER BY date DESC';
+
+    const transactions = await db.getAllAsync<TransactionDB>(query, params);
+    return transactions.map(convertTransaction);
   } catch (error) {
     console.error('Error fetching transactions by date range:', error);
     throw error;
@@ -196,16 +228,18 @@ export const deleteTransaction = async (id: string): Promise<void> => {
   }
 };
 
-// Analytics queries
-export const getTotalByCategory = async (startDate?: string, endDate?: string, transactionType?: 'income' | 'expense'): Promise<{categoryId: string, total: number}[]> => {
+export const getTotalByCategory = async (
+  startDate?: string,
+  endDate?: string,
+  transactionType?: 'income' | 'expense'
+): Promise<{categoryId: string, total: number}[]> => {
   try {
     let query = `
       SELECT category AS categoryId, SUM(amount) AS total
       FROM transactions
       WHERE 1=1`;
 
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    const params: any[] = [];
+    const params: string[] = [];
 
     if (startDate && endDate) {
       query += " AND date BETWEEN ? AND ?";
@@ -227,7 +261,10 @@ export const getTotalByCategory = async (startDate?: string, endDate?: string, t
   }
 };
 
-export const getMonthlyTransactions = async (year: number, transactionType?: 'income' | 'expense'): Promise<{month: number, total: number}[]> => {
+export const getMonthlyTransactions = async (
+  year: number,
+  transactionType?: 'income' | 'expense'
+): Promise<{month: number, total: number}[]> => {
   try {
     let query = `
       SELECT CAST(strftime('%m', date) AS INTEGER) AS month,
@@ -235,8 +272,7 @@ export const getMonthlyTransactions = async (year: number, transactionType?: 'in
       FROM transactions
       WHERE strftime('%Y', date) = ?`;
 
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    const params: any[] = [year.toString()];
+    const params: string[] = [year.toString()];
 
     if (transactionType === 'income') {
       query += " AND isIncome = 1";
@@ -256,8 +292,7 @@ export const getMonthlyTransactions = async (year: number, transactionType?: 'in
 export const getIncomeSummary = async (startDate?: string, endDate?: string): Promise<number> => {
   try {
     let query = "SELECT SUM(amount) as total FROM transactions WHERE isIncome = 1";
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    const params: any[] = [];
+    const params: string[] = [];
 
     if (startDate && endDate) {
       query += " AND date BETWEEN ? AND ?";
@@ -275,8 +310,7 @@ export const getIncomeSummary = async (startDate?: string, endDate?: string): Pr
 export const getExpenseSummary = async (startDate?: string, endDate?: string): Promise<number> => {
   try {
     let query = "SELECT SUM(amount) as total FROM transactions WHERE isIncome = 0";
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    const params: any[] = [];
+    const params: string[] = [];
 
     if (startDate && endDate) {
       query += " AND date BETWEEN ? AND ?";
@@ -297,11 +331,9 @@ export const getNetIncome = async (startDate?: string, endDate?: string): Promis
       SELECT
         COALESCE(SUM(CASE WHEN isIncome = 1 THEN amount ELSE 0 END), 0) -
         COALESCE(SUM(CASE WHEN isIncome = 0 THEN amount ELSE 0 END), 0) as netIncome
-      FROM transactions
-    `;
+      FROM transactions`;
 
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    const params: any[] = [];
+    const params: string[] = [];
 
     if (startDate && endDate) {
       query += " WHERE date BETWEEN ? AND ?";
@@ -316,7 +348,6 @@ export const getNetIncome = async (startDate?: string, endDate?: string): Promis
   }
 };
 
-// Recurring Transactions
 export const calculateNextDueDate = (
   transaction: Pick<RecurringTransaction, 'recurrenceType'> & Partial<RecurringTransaction>
 ): string => {
@@ -452,22 +483,21 @@ export const processRecurringTransactions = async (): Promise<void> => {
     if (dueTransactions.length === 0) return;
 
     await db.withTransactionAsync(async () => {
-      for (const dbTx of dueTransactions) {
-        const tx = convertRecurringTransaction(dbTx);
+      for (const dbTransaction of dueTransactions) {
+        const transaction = convertRecurringTransaction(dbTransaction);
 
-        // Add the transaction (now handling both income and expenses)
         await addTransaction({
-          amount: tx.amount,
-          category: tx.category,
+          amount: transaction.amount,
+          category: transaction.category,
           date: today,
-          note: `[Auto] ${tx.note}`,
-          isIncome: tx.isIncome
+          note: `[Auto] ${transaction.note}`,
+          isIncome: transaction.isIncome
         });
 
         await updateRecurringTransaction({
-          ...tx,
+          ...transaction,
           lastProcessed: today,
-          nextDue: calculateNextDueDate(tx)
+          nextDue: calculateNextDueDate(transaction)
         });
       }
     });
@@ -480,8 +510,10 @@ export const processRecurringTransactions = async (): Promise<void> => {
 export default {
   initDatabase,
   getCategories,
+  getCategoriesByType,
   addTransaction,
   getTransactions,
+  getTransactionsByType,
   getTransactionsByCategory,
   getTransactionsByDateRange,
   updateTransaction,

@@ -1,11 +1,10 @@
-// app/_layout.tsx
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SplashScreen, Slot } from 'expo-router';
 import { useFonts } from 'expo-font';
 import { View, Text, StyleSheet } from 'react-native';
 
-import { ExpensesProvider } from './contexts/ExpensesContext';
+import { TransactionsProvider } from './contexts/TransactionsContext';
 import { PeriodProvider } from './contexts/PeriodContext';
 import { initDatabase } from './database/database';
 import { BudgetProvider } from './contexts/BudgetContext';
@@ -62,12 +61,12 @@ export default function RootLayout() {
     <CurrencyProvider>
       <PeriodProvider>
         <BudgetProvider>
-          <ExpensesProvider>
+          <TransactionsProvider>
             <RecurringTransactionsProvider>
               <StatusBar style="light" />
               <Slot />
             </RecurringTransactionsProvider>
-          </ExpensesProvider>
+          </TransactionsProvider>
         </BudgetProvider>
       </PeriodProvider>
     </CurrencyProvider>

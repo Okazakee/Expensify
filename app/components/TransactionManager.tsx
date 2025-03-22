@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-
 import { formatCurrency } from '../utils/currencyUtils';
 import TransactionEditor from './TransactionEditor';
 
@@ -38,7 +37,7 @@ const TransactionManager: React.FC<TransactionManagerProps> = ({ isVisible, onCl
     setShowEditor(true);
   };
 
-  const handleAddExpense = () => {
+  const handleAddTransaction = () => {
     setIsAddingIncome(false);
     setShowEditor(true);
   };
@@ -129,7 +128,7 @@ const TransactionManager: React.FC<TransactionManagerProps> = ({ isVisible, onCl
 
               <TouchableOpacity
                 style={[styles.actionButton, styles.expenseButton]}
-                onPress={handleAddExpense}
+                onPress={handleAddTransaction}
               >
                 <Ionicons name="add-circle" size={18} color="#FF6B6B" style={styles.actionButtonIcon} />
                 <Text style={styles.expenseButtonText}>Add Expense</Text>

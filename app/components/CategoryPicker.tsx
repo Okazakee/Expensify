@@ -14,6 +14,7 @@ interface CategoryPickerProps {
   categories: Category[];
   selectedCategoryId: string | null;
   onSelectCategory: (categoryId: string) => void;
+  isIncome?: boolean;
 }
 
 const { width } = Dimensions.get('window');
@@ -22,17 +23,29 @@ const ITEM_WIDTH = (width - 48) / 2; // 2 columns with 16px padding on each side
 const CategoryPicker: React.FC<CategoryPickerProps> = ({
   categories,
   selectedCategoryId,
-  onSelectCategory
+  onSelectCategory,
+  isIncome = false
 }) => {
+  // Filter categories based on transaction type
+  const filteredCategories = categories.filter(cat => {
+    const incomeCategories = ['salary', 'freelance', 'investment', 'gift', 'refund', 'other_income'];
+    if (isIncome) {
+      return incomeCategories.includes(cat.id);
+    }
+      return !incomeCategories.includes(cat.id);
+  });
+
   // Create rows of categories (2 per row)
   const renderCategories = () => {
     const rows = [];
 
-    for (let i = 0; i < categories.length; i += 2) {
+    for (let i = 0; i < filteredCategories.length; i += 2) {
       const row = (
         <View key={`row-${i}`} style={styles.columnWrapper}>
-          {renderCategoryItem(categories[i])}
-          {i + 1 < categories.length ? renderCategoryItem(categories[i + 1]) : <View style={{ width: ITEM_WIDTH }} />}
+          {renderCategoryItem(filteredCategories[i])}
+          {i + 1 < filteredCategories.length ? 
+            renderCategoryItem(filteredCategories[i + 1]) : 
+            <View style={{ width: ITEM_WIDTH }} />}
         </View>
       );
       rows.push(row);
@@ -55,7 +68,6 @@ const CategoryPicker: React.FC<CategoryPickerProps> = ({
       >
         <BlurView intensity={20} tint="dark" style={styles.blurContainer}>
           <View style={[styles.iconContainer, { backgroundColor: item.color }]}>
-            {/* TODO fix type later */}
             {/* biome-ignore lint/suspicious/noExplicitAny: <explanation> */}
             <Ionicons name={item.icon as any} size={24} color="#000000" />
           </View>

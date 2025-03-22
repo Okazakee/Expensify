@@ -9,35 +9,42 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Modal
+  Modal,
+  Switch
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import type { Expense } from '../database/schema';
-import { useExpenses } from '../contexts/ExpensesContext';
+import type { Transaction } from '../database/schema';
+import { useTransactions } from '../contexts/TransactionsContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import CategoryPicker from './CategoryPicker';
 import { formatFullDate, getISODate } from '../utils/dateUtils';
 import { parseAmount, validateAmount } from '../utils/currencyUtils';
 
-interface ExpenseFormProps {
-  initialExpense?: Expense;
+interface TransactionFormProps {
+  initialTransaction?: Transaction;
   onSubmit: () => void;
   onCancel: () => void;
+  defaultIsIncome?: boolean;
 }
 
-const ExpenseForm: React.FC<ExpenseFormProps> = ({
-  initialExpense,
+const TransactionForm: React.FC<TransactionFormProps> = ({
+  initialTransaction,
   onSubmit,
-  onCancel
+  onCancel,
+  defaultIsIncome
 }) => {
-  const { categories, addNewExpense, updateExistingExpense } = useExpenses();
+  const { categories, addNewTransaction, updateExistingTransaction } = useTransactions();
   const { currentCurrency } = useCurrency();
 
-  const [amount, setAmount] = useState(initialExpense ? initialExpense.amount.toString() : '');
-  const [category, setCategory] = useState<string | null>(initialExpense ? initialExpense.category : null);
-  const [date, setDate] = useState(initialExpense ? new Date(initialExpense.date) : new Date());
-  const [note, setNote] = useState(initialExpense ? initialExpense.note : '');
+  const [amount, setAmount] = useState(initialTransaction ? initialTransaction.amount.toString() : '');
+  const [category, setCategory] = useState<string | null>(initialTransaction ? initialTransaction.category : null);
+  const [date, setDate] = useState(initialTransaction ? new Date(initialTransaction.date) : new Date());
+  const [note, setNote] = useState(initialTransaction ? initialTransaction.note : '');
+  const [isIncome, setIsIncome] = useState(
+    initialTransaction ? initialTransaction.isIncome : 
+    defaultIsIncome !== undefined ? defaultIsIncome : false
+  );
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{amount?: string; category?: string}>({});
@@ -46,7 +53,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
   const [tempDate, setTempDate] = useState(date);
   const [showDateModal, setShowDateModal] = useState(false);
 
-  const isEditing = !!initialExpense;
+  const isEditing = !!initialTransaction;
 
   // Reset form state when the component is unmounted
   useEffect(() => {
@@ -78,21 +85,22 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
     try {
       setIsSubmitting(true);
 
-      const expenseData = {
+      const transactionData = {
         amount: parseAmount(amount),
         // biome-ignore lint/style/noNonNullAssertion: <explanation>
         category: category!,
         date: getISODate(date),
-        note: note.trim()
+        note: note.trim(),
+        isIncome
       };
 
-      if (isEditing && initialExpense) {
-        await updateExistingExpense({
-          ...expenseData,
-          id: initialExpense.id
+      if (isEditing && initialTransaction) {
+        await updateExistingTransaction({
+          ...transactionData,
+          id: initialTransaction.id
         });
       } else {
-        await addNewExpense(expenseData);
+        await addNewTransaction(transactionData);
       }
 
       onSubmit();
@@ -107,7 +115,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
       setIsSubmitting(false);
 
     } catch (error) {
-      console.error('Failed to save expense:', error);
+      console.error('Failed to save transaction:', error);
       setIsSubmitting(false);
     }
   };
@@ -127,6 +135,24 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
   const handleConfirmDate = () => {
     setDate(tempDate);
     setShowDateModal(false);
+  };
+
+  const toggleTransactionType = () => {
+    // Reset category when switching transaction types
+    if (category) {
+      const currentCat = categories.find(c => c.id === category);
+      if (currentCat) {
+        const incomeCategories = ['salary', 'freelance', 'investment', 'gift', 'refund', 'other_income'];
+        const isCategoryIncome = incomeCategories.includes(currentCat.id);
+        
+        // If the category type doesn't match the new transaction type, reset it
+        if (isCategoryIncome === isIncome) {
+          setCategory(null);
+        }
+      }
+    }
+    
+    setIsIncome(!isIncome);
   };
 
   // Simple date picker UI
@@ -159,10 +185,8 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
     const monthOptions = months.map((month, index) => (
       <TouchableOpacity
-        key={`month-${
-          // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-          index
-        }`}
+      // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+        key={`month-${index}`}
         style={[styles.pickerOption, tempDate.getMonth() === index && styles.selectedPickerOption]}
         onPress={() => {
           const newDate = new Date(tempDate);
@@ -252,6 +276,26 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
       style={styles.container}
     >
       <ScrollView>
+        {/* Transaction Type Toggle */}
+        <View style={styles.typeToggleContainer}>
+          <Text style={styles.label}>Transaction Type</Text>
+          <View style={styles.toggleRow}>
+            <Text style={styles.toggleLabel}>Expense</Text>
+            <Switch
+              value={isIncome}
+              onValueChange={toggleTransactionType}
+              trackColor={{ 
+                false: 'rgba(255, 107, 107, 0.3)', 
+                true: 'rgba(76, 175, 80, 0.3)' 
+              }}
+              thumbColor={isIncome ? '#4CAF50' : '#FF6B6B'}
+              ios_backgroundColor="rgba(255, 107, 107, 0.3)"
+              style={styles.switch}
+            />
+            <Text style={styles.toggleLabel}>Income</Text>
+          </View>
+        </View>
+
         <View style={styles.formGroup}>
           <Text style={styles.label}>Amount</Text>
           <View style={styles.amountInputContainer}>
@@ -278,6 +322,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
           categories={categories}
           selectedCategoryId={category}
           onSelectCategory={handleSelectCategory}
+          isIncome={isIncome}
         />
         {errors.category ? <Text style={styles.errorText}>{errors.category}</Text> : null}
 
@@ -314,7 +359,11 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.button, styles.submitButton, isSubmitting && styles.disabledButton]}
+            style={[
+              styles.button, 
+              isIncome ? styles.saveIncomeButton : styles.saveExpenseButton, 
+              isSubmitting && styles.disabledButton
+            ]}
             onPress={handleSubmit}
             disabled={isSubmitting}
           >
@@ -406,8 +455,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     marginRight: 8,
   },
-  submitButton: {
-    backgroundColor: '#15E8FE',
+  saveExpenseButton: {
+    backgroundColor: '#FF6B6B',
+    marginLeft: 8,
+  },
+  saveIncomeButton: {
+    backgroundColor: '#4CAF50',
     marginLeft: 8,
   },
   cancelButtonText: {
@@ -431,7 +484,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 4,
   },
-
   // Date picker modal styles
   modalContainer: {
     flex: 1,
@@ -517,6 +569,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
+  // Transaction type toggle styles
+  typeToggleContainer: {
+    marginBottom: 20,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    backgroundColor: '#1E1E1E',
+    borderRadius: 8,
+    padding: 12,
+  },
+  toggleLabel: {
+    fontSize: 16,
+    color: '#ffffff',
+    fontWeight: '500',
+  },
+  switch: {
+    marginHorizontal: 20,
+  },
 });
 
-export default ExpenseForm;
+export default TransactionForm;
