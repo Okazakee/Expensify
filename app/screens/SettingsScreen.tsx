@@ -1,0 +1,253 @@
+import type React from 'react';
+import { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  Switch,
+  Alert,
+  Linking
+} from 'react-native';
+import { Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+
+const SettingsScreen = () => {
+  const [darkMode, setDarkMode] = useState(true);
+  const [notifications, setNotifications] = useState(true);
+  const [haptics, setHaptics] = useState(true);
+
+  const toggleDarkMode = () => {
+    // In a real app, we would handle theme switching here
+    // For this hackathon, we're keeping it dark theme only
+    Haptics.selectionAsync();
+    Alert.alert(
+      "Dark Mode Only",
+      "This app is designed with a dark theme for the retrofuturism aesthetic. Light mode is not available in this version.",
+      [{ text: "OK" }]
+    );
+  };
+
+  const toggleNotifications = () => {
+    Haptics.selectionAsync();
+    setNotifications(!notifications);
+  };
+
+  const toggleHaptics = () => {
+    Haptics.selectionAsync();
+    setHaptics(!haptics);
+  };
+
+  const handleExportData = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      "Export Data",
+      "This feature would export your expense data in CSV format. Not implemented for the hackathon.",
+      [{ text: "OK" }]
+    );
+  };
+
+  const handleImportData = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      "Import Data",
+      "This feature would allow importing expense data from CSV. Not implemented for the hackathon.",
+      [{ text: "OK" }]
+    );
+  };
+
+  const handleResetData = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    Alert.alert(
+      "Reset All Data",
+      "This will delete all your expenses and categories. This action cannot be undone. Are you sure?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Reset",
+          style: "destructive",
+          onPress: () => {
+            // In a real app, we would call a function to clear the database
+            Alert.alert("Data Reset", "All data has been reset.");
+          }
+        }
+      ]
+    );
+  };
+
+  const handleAbout = () => {
+    Haptics.selectionAsync();
+    Alert.alert(
+      "About Expensify",
+      "Version 1.0.0\n\nA simple yet powerful expense tracking app created for the 24-hour hackathon. Built with React Native and Expo.",
+      [{ text: "OK" }]
+    );
+  };
+
+  const handleRateApp = () => {
+    Haptics.selectionAsync();
+    Alert.alert(
+      "Rate App",
+      "This would normally take you to the app store. Not implemented for the hackathon.",
+      [{ text: "OK" }]
+    );
+  };
+
+  const handleContactSupport = () => {
+    Haptics.selectionAsync();
+    Linking.openURL("mailto:support@example.com");
+  };
+
+  const renderSettingsItem = (
+    icon: string,
+    title: string,
+    onPress: () => void,
+    rightElement?: React.ReactNode
+  ) => {
+    return (
+      <TouchableOpacity style={styles.settingItem} onPress={onPress}>
+        <View style={styles.settingLeft}>
+          <Ionicons name={icon as any} size={22} color="#50E3C2" style={styles.settingIcon} /> {/* TODO fix type later */}
+          <Text style={styles.settingTitle}>{title}</Text>
+        </View>
+        {rightElement ? (
+          rightElement
+        ) : (
+          <Ionicons name="chevron-forward" size={20} color="rgba(255, 255, 255, 0.5)" />
+        )}
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <Stack.Screen
+        options={{
+          title: 'Settings',
+          headerStyle: {
+            backgroundColor: '#1A1A1A',
+          },
+          headerTintColor: '#FFFFFF',
+          headerShadowVisible: false,
+        }}
+      />
+
+      <View style={styles.content}>
+        {/* Appearance */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Appearance</Text>
+          {renderSettingsItem(
+            'moon',
+            'Dark Mode',
+            toggleDarkMode,
+            <Switch
+              value={darkMode}
+              onValueChange={toggleDarkMode}
+              trackColor={{ false: '#3e3e3e', true: 'rgba(80, 227, 194, 0.3)' }}
+              thumbColor={darkMode ? '#50E3C2' : '#f4f3f4'}
+              ios_backgroundColor="#3e3e3e"
+            />
+          )}
+        </View>
+
+        {/* Preferences */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Preferences</Text>
+          {renderSettingsItem(
+            'notifications',
+            'Notifications',
+            toggleNotifications,
+            <Switch
+              value={notifications}
+              onValueChange={toggleNotifications}
+              trackColor={{ false: '#3e3e3e', true: 'rgba(80, 227, 194, 0.3)' }}
+              thumbColor={notifications ? '#50E3C2' : '#f4f3f4'}
+              ios_backgroundColor="#3e3e3e"
+            />
+          )}
+          {renderSettingsItem(
+            'vibrate',
+            'Haptic Feedback',
+            toggleHaptics,
+            <Switch
+              value={haptics}
+              onValueChange={toggleHaptics}
+              trackColor={{ false: '#3e3e3e', true: 'rgba(80, 227, 194, 0.3)' }}
+              thumbColor={haptics ? '#50E3C2' : '#f4f3f4'}
+              ios_backgroundColor="#3e3e3e"
+            />
+          )}
+        </View>
+
+        {/* Data Management */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Data Management</Text>
+          {renderSettingsItem('download-outline', 'Export Data', handleExportData)}
+          {renderSettingsItem('cloud-upload-outline', 'Import Data', handleImportData)}
+          {renderSettingsItem('trash-outline', 'Reset All Data', handleResetData)}
+        </View>
+
+        {/* About */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>About</Text>
+          {renderSettingsItem('information-circle-outline', 'About Expensify', handleAbout)}
+          {renderSettingsItem('star-outline', 'Rate the App', handleRateApp)}
+          {renderSettingsItem('mail-outline', 'Contact Support', handleContactSupport)}
+        </View>
+
+        <Text style={styles.versionText}>Version 1.0.0</Text>
+      </View>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#121212',
+  },
+  content: {
+    flex: 1,
+    padding: 16,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#50E3C2',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  settingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  settingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  settingIcon: {
+    marginRight: 12,
+  },
+  settingTitle: {
+    fontSize: 16,
+    color: '#FFFFFF',
+  },
+  versionText: {
+    textAlign: 'center',
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginTop: 24,
+    marginBottom: 16,
+  },
+});
+
+export default SettingsScreen;
