@@ -5,6 +5,7 @@ import { useFonts } from 'expo-font';
 import { View, Text, StyleSheet } from 'react-native';
 
 import { ExpensesProvider } from './contexts/ExpensesContext';
+import { PeriodProvider } from './contexts/PeriodContext';
 import { initDatabase } from './database/database';
 
 // Prevent the splash screen from auto-hiding
@@ -54,9 +55,11 @@ export default function RootLayout() {
   }
 
   return (
-    <ExpensesProvider>
-      <StatusBar style="light" />
-      <Slot />
-    </ExpensesProvider>
+    <PeriodProvider>
+      <ExpensesProvider>
+        <StatusBar style="light" />
+        <Slot />
+      </ExpensesProvider>
+    </PeriodProvider>
   );
 }

@@ -14,6 +14,7 @@ import {
 } from '../database/database';
 import type { Expense, Category } from '../database/schema';
 import { getCurrentMonthRange, getCurrentYear } from '../utils/dateUtils';
+import { usePeriod } from './PeriodContext';
 
 interface ExpensesContextType {
   expenses: Expense[];
@@ -33,6 +34,7 @@ interface ExpensesContextType {
 const ExpensesContext = createContext<ExpensesContextType | undefined>(undefined);
 
 export const ExpensesProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
+  const { startDate, endDate } = usePeriod();
   const [isLoading, setIsLoading] = useState(true);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -45,7 +47,7 @@ export const ExpensesProvider: React.FC<{children: React.ReactNode}> = ({ childr
     const initialize = async () => {
       try {
         await initDatabase();
-        await refreshData();
+        await loadAllData();
       } catch (error) {
         console.error('Failed to initialize app:', error);
         Alert.alert('Error', 'Failed to initialize the app. Please restart.');
@@ -57,38 +59,67 @@ export const ExpensesProvider: React.FC<{children: React.ReactNode}> = ({ childr
     initialize();
   }, []);
 
-  const refreshData = async () => {
+  // Load period-specific data when period changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+    useEffect(() => {
+    if (!isLoading) {
+      loadPeriodData();
+    }
+  }, [startDate, endDate]);
+
+  const loadAllData = async () => {
     try {
       setIsLoading(true);
 
-      // Get all data
+      // Get all categories and expenses (not filtered by period)
       const allCategories = await getCategories();
       const allExpenses = await getExpenses();
       setCategories(allCategories);
       setExpenses(allExpenses);
 
-      // Get current month expenses
-      const { startDate, endDate } = getCurrentMonthRange();
-      const monthExpenses = await getExpensesByDateRange(startDate, endDate);
-      setCurrentMonthExpenses(monthExpenses);
-
-      // Calculate monthly total
-      const total = monthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-      setMonthlyTotal(total);
-
-      // Get category totals
-      const totals = await getTotalExpensesByCategory();
-      setCategoryTotals(totals);
-
-      // Get monthly expenses for current year
+      // Get monthly expenses for current year (for charts)
       const currentYear = getCurrentYear();
       const monthlyData = await getMonthlyExpenses(currentYear);
       setMonthlyExpenseData(monthlyData);
+
+      // Load period-specific data
+      await loadPeriodData();
+    } catch (error) {
+      console.error('Error loading data:', error);
+      Alert.alert('Error', 'Failed to load expense data. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadPeriodData = async () => {
+    try {
+      setIsLoading(true);
+
+      // Get current period expenses
+      const periodExpenses = await getExpensesByDateRange(startDate, endDate);
+      setCurrentMonthExpenses(periodExpenses);
+
+      // Calculate period total
+      const total = periodExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+      setMonthlyTotal(total);
+
+      // Get category totals for this period
+      const totals = await getTotalExpensesByCategory();
+      setCategoryTotals(totals);
+    } catch (error) {
+      console.error('Error loading period data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const refreshData = async () => {
+    try {
+      await loadAllData();
     } catch (error) {
       console.error('Error refreshing data:', error);
       Alert.alert('Error', 'Failed to refresh data. Please try again.');
-    } finally {
-      setIsLoading(false);
     }
   };
 

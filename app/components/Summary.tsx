@@ -1,7 +1,7 @@
 import type React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { formatCurrency } from '../utils/currencyUtils';
-import { getCurrentMonthName } from '../utils/dateUtils';
+import PeriodSelector from './PeriodSelector';
 
 interface SummaryProps {
   spent: number;
@@ -20,13 +20,11 @@ const Summary: React.FC<SummaryProps> = ({
   const remaining = budget - spent;
   const isOverBudget = spent > budget;
 
-  const currentMonth = getCurrentMonthName();
-
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <Text style={styles.title}>{title}</Text>
-        <Text style={styles.month}>{currentMonth}</Text>
+        <PeriodSelector style={styles.monthSelector} textStyle={styles.month} />
       </View>
 
       <View style={styles.amountsRow}>
@@ -77,6 +75,9 @@ const styles = StyleSheet.create({
     color: '#888888',
     fontWeight: '600',
     letterSpacing: 0.5,
+  },
+  monthSelector: {
+    padding: 4, // Add touch target padding
   },
   amountsRow: {
     flexDirection: 'row',
