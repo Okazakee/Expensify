@@ -23,17 +23,10 @@ const ITEM_WIDTH = (width - 48) / 2; // 2 columns with 16px padding on each side
 const CategoryPicker: React.FC<CategoryPickerProps> = ({
   categories,
   selectedCategoryId,
-  onSelectCategory,
-  isIncome = false
+  onSelectCategory
 }) => {
-  // Filter categories based on transaction type
-  const filteredCategories = categories.filter(cat => {
-    const incomeCategories = ['salary', 'freelance', 'investment', 'gift', 'refund', 'other_income'];
-    if (isIncome) {
-      return incomeCategories.includes(cat.id);
-    }
-      return !incomeCategories.includes(cat.id);
-  });
+  // Don't filter categories based on transaction type - show all categories
+  const filteredCategories = categories;
 
   // Create rows of categories (2 per row)
   const renderCategories = () => {

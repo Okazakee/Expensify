@@ -42,7 +42,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   const [date, setDate] = useState(initialTransaction ? new Date(initialTransaction.date) : new Date());
   const [note, setNote] = useState(initialTransaction ? initialTransaction.note : '');
   const [isIncome, setIsIncome] = useState(
-    initialTransaction ? initialTransaction.isIncome : 
+    initialTransaction ? initialTransaction.isIncome :
     defaultIsIncome !== undefined ? defaultIsIncome : false
   );
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
@@ -144,14 +144,17 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
       if (currentCat) {
         const incomeCategories = ['salary', 'freelance', 'investment', 'gift', 'refund', 'other_income'];
         const isCategoryIncome = incomeCategories.includes(currentCat.id);
-        
-        // If the category type doesn't match the new transaction type, reset it
-        if (isCategoryIncome === isIncome) {
+
+        // The new isIncome value will be the opposite of current isIncome
+        const newIsIncome = !isIncome;
+
+        // If category type doesn't match the NEW transaction type, reset it
+        if (isCategoryIncome !== newIsIncome) {
           setCategory(null);
         }
       }
     }
-    
+
     setIsIncome(!isIncome);
   };
 
@@ -284,9 +287,9 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
             <Switch
               value={isIncome}
               onValueChange={toggleTransactionType}
-              trackColor={{ 
-                false: 'rgba(255, 107, 107, 0.3)', 
-                true: 'rgba(76, 175, 80, 0.3)' 
+              trackColor={{
+                false: 'rgba(255, 107, 107, 0.3)',
+                true: 'rgba(76, 175, 80, 0.3)'
               }}
               thumbColor={isIncome ? '#4CAF50' : '#FF6B6B'}
               ios_backgroundColor="rgba(255, 107, 107, 0.3)"
@@ -322,7 +325,6 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           categories={categories}
           selectedCategoryId={category}
           onSelectCategory={handleSelectCategory}
-          isIncome={isIncome}
         />
         {errors.category ? <Text style={styles.errorText}>{errors.category}</Text> : null}
 
@@ -360,8 +362,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
 
           <TouchableOpacity
             style={[
-              styles.button, 
-              isIncome ? styles.saveIncomeButton : styles.saveExpenseButton, 
+              styles.button,
+              isIncome ? styles.saveIncomeButton : styles.saveExpenseButton,
               isSubmitting && styles.disabledButton
             ]}
             onPress={handleSubmit}

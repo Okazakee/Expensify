@@ -48,28 +48,12 @@ const Summary: React.FC<SummaryProps> = ({
         </View>
       </View>
 
-      {/* Income Row */}
-      <View style={styles.summaryRow}>
-        <Text style={styles.summaryLabel}>Income</Text>
-        <Text style={[styles.summaryValue, styles.incomeValue]}>
-          {formatCurrency(income)}
-        </Text>
-      </View>
-
-      {/* Expense Row */}
-      <View style={styles.summaryRow}>
-        <Text style={styles.summaryLabel}>Expenses</Text>
-        <Text style={[styles.summaryValue, styles.expenseValue]}>
-          {formatCurrency(spent)}
-        </Text>
-      </View>
-
-      {/* Net Row */}
-      <View style={[styles.summaryRow, styles.netRow]}>
-        <Text style={styles.netLabel}>Net</Text>
+      {/* Net Value (Simplified) */}
+      <View style={styles.netContainer}>
+        <Text style={styles.netLabel}>Balance</Text>
         <Text style={[
           styles.netValue,
-          net >= 0 ? styles.positiveNetValue : styles.negativeNetValue
+          net === 0 ? styles.neutralValue : net > 0 ? styles.positiveNetValue : styles.negativeNetValue
         ]}>
           {formatCurrency(net)}
         </Text>
@@ -163,38 +147,25 @@ const styles = StyleSheet.create({
   monthSelector: {
     padding: 4,
   },
-  summaryRow: {
+  netContainer: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: '#888888',
-  },
-  summaryValue: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  incomeValue: {
-    color: '#4CAF50',
-  },
-  expenseValue: {
-    color: '#FF6B6B',
-  },
-  netRow: {
-    marginTop: 4,
-    marginBottom: 0,
+    alignContent: 'center',
+    paddingVertical: 8,
   },
   netLabel: {
     fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
+    alignSelf: 'center'
   },
   netValue: {
-    fontSize: 20,
+    fontSize: 36,
     fontWeight: '700',
+  },
+  neutralValue: {
+    color: '#ffffff',
   },
   positiveNetValue: {
     color: '#4CAF50',

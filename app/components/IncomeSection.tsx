@@ -66,8 +66,8 @@ const IncomeSection: React.FC<IncomeSectionProps> = () => {
 
           {recurringExpenses > 0 && (
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Monthly Expenses</Text>
-              <Text style={[styles.summaryValue, styles.expenseValue]}>
+              <Text style={styles.summaryLabel2}>Monthly Expenses</Text>
+              <Text style={[styles.summaryValue2, styles.expenseValue]}>
                 -{formatCurrency(recurringExpenses)}
               </Text>
             </View>
@@ -187,6 +187,17 @@ const styles = StyleSheet.create({
   summaryValue: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  summaryLabel2: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginBottom: 4,
+    marginLeft: 'auto'
+  },
+  summaryValue2: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 'auto'
   },
   incomeValue: {
     color: '#15E8FE',

@@ -12,6 +12,7 @@ export interface Currency {
 
 // Available currencies
 export const AVAILABLE_CURRENCIES: Currency[] = [
+  { code: 'BTC', symbol: '₿', name: 'Bitcoin' },
   { code: 'USD', symbol: '$', name: 'US Dollar' },
   { code: 'EUR', symbol: '€', name: 'Euro' },
   { code: 'GBP', symbol: '£', name: 'British Pound' },
