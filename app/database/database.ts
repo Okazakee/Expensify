@@ -114,8 +114,22 @@ export const deleteExpense = async (id: string): Promise<void> => {
 };
 
 // Analytics queries
-export const getTotalExpensesByCategory = async (): Promise<{categoryId: string, total: number}[]> => {
+export const getTotalExpensesByCategory = async (startDate?: string, endDate?: string): Promise<{categoryId: string, total: number}[]> => {
   try {
+    if (startDate && endDate) {
+      // With date range filter
+      return await db.getAllAsync<{categoryId: string, total: number}>(
+        `SELECT
+          category AS categoryId,
+          SUM(amount) AS total
+        FROM expenses
+        WHERE date BETWEEN ? AND ?
+        GROUP BY category`,
+        [startDate, endDate]
+      );
+    }
+
+    // Without date range (all time)
     return await db.getAllAsync<{categoryId: string, total: number}>(
       'SELECT category AS categoryId, SUM(amount) AS total FROM expenses GROUP BY category'
     );

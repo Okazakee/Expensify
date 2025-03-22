@@ -96,16 +96,22 @@ export const ExpensesProvider: React.FC<{children: React.ReactNode}> = ({ childr
     try {
       setIsLoading(true);
 
-      // Get current period expenses
+      // Get period expenses using the current date range from PeriodContext
       const periodExpenses = await getExpensesByDateRange(startDate, endDate);
-      setCurrentMonthExpenses(periodExpenses);
 
-      // Calculate period total
+      // Sort expenses by date (newest first)
+      const sortedExpenses = [...periodExpenses].sort((a, b) =>
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+
+      setCurrentMonthExpenses(sortedExpenses);
+
+      // Calculate period total from the current period expenses
       const total = periodExpenses.reduce((sum, expense) => sum + expense.amount, 0);
       setMonthlyTotal(total);
 
-      // Get category totals for this period
-      const totals = await getTotalExpensesByCategory();
+      // Get category totals for this period - modify the function to accept date range
+      const totals = await getTotalExpensesByCategory(startDate, endDate);
       setCategoryTotals(totals);
     } catch (error) {
       console.error('Error loading period data:', error);

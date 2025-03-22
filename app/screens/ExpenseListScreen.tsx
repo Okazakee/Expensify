@@ -9,7 +9,6 @@ import {
   RefreshControl
 } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { useExpenses } from '../contexts/ExpensesContext';
@@ -30,7 +29,15 @@ const ExpenseListScreen = () => {
 
   const [refreshing, setRefreshing] = useState(false);
 
-  const displayedExpenses = activeFilter ? filteredExpenses : expenses;
+  // Sort expenses by date, newest first
+  const sortedExpenses = [...expenses].sort((a, b) =>
+    new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+
+  // Use the filtered expenses if there's an active filter, otherwise use the sorted expenses
+  const displayedExpenses = activeFilter ?
+    [...filteredExpenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) :
+    sortedExpenses;
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);

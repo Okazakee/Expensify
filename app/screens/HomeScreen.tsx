@@ -44,9 +44,6 @@ const HomeScreen = () => {
     router.push({ pathname: "/settings" });
   };
 
-  // Only show the most recent 5 expenses
-  const recentExpenses = currentMonthExpenses.slice(0, 5);
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -73,9 +70,9 @@ const HomeScreen = () => {
         {/* Budget Summary */}
         <Summary spent={monthlyTotal} />
 
-        {/* Recent Expenses */}
+        {/* Monthly Expenses */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recent Expenses</Text>
+          <Text style={styles.sectionTitle}>Monthly Expenses</Text>
           <TouchableOpacity onPress={handleViewAllExpenses}>
             <Text style={styles.seeAllText}>See All</Text>
           </TouchableOpacity>
@@ -84,10 +81,10 @@ const HomeScreen = () => {
         <View style={styles.expensesContainer}>
           {isLoading ? (
             <Text style={styles.emptyText}>Loading expenses...</Text>
-          ) : recentExpenses.length === 0 ? (
+          ) : currentMonthExpenses.length === 0 ? (
             <Text style={styles.emptyText}>No expenses yet. Tap the "+" button to add one.</Text>
           ) : (
-            recentExpenses.map(expense => (
+            currentMonthExpenses.map(expense => (
               <ExpenseItem
                 key={expense.id}
                 expense={expense}
