@@ -2,14 +2,12 @@ import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { BlurView } from 'expo-blur';
-
 
 import { useExpenses } from '../contexts/ExpensesContext';
 import Summary from '../components/Summary';
 import ExpenseItem from '../components/ExpenseItem';
 import type { Expense } from '../database/schema';
-import IncomeSection from '../components/IncomeSection';
+import IncomeSection from '../components/IncomeSection'; // Now directly opens TransactionEditor modals
 
 const HomeScreen = () => {
   const router = useRouter();
@@ -33,7 +31,7 @@ const HomeScreen = () => {
       pathname: "/expense/[id]",
       params: { id: expense.id }
     });
-};
+  };
 
   const handleViewAllExpenses = () => {
     router.push({ pathname: "/expenses" });
@@ -68,10 +66,7 @@ const HomeScreen = () => {
       >
         {/* Budget Summary */}
         <Summary spent={monthlyTotal} />
-        <IncomeSection
-          onIncomePress={() => console.log('asd')}
-          onExpensePress={() => console.log('asd')}
-        />
+        <IncomeSection />
 
         {/* Monthly Expenses */}
         <View style={styles.sectionHeader}>
@@ -87,7 +82,7 @@ const HomeScreen = () => {
           ) : currentMonthExpenses.length === 0 ? (
             <Text style={styles.emptyText}>No expenses yet. Tap the "+" button to add one.</Text>
           ) : (
-            currentMonthExpenses.map(expense => (
+            currentMonthExpenses.slice(0, 5).map(expense => (
               <ExpenseItem
                 key={expense.id}
                 expense={expense}
@@ -120,33 +115,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#ffffff',
     letterSpacing: 0.5,
-  },
-  quickActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  actionButton: {
-    flex: 1,
-    marginHorizontal: 4,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  actionButtonInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-  },
-  actionText: {
-    marginLeft: 8,
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '500',
   },
   sectionHeader: {
     flexDirection: 'row',

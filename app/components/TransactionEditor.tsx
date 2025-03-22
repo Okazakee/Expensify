@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -12,33 +12,70 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-
 import { formatCurrency, parseAmount } from '../utils/currencyUtils';
 
 // Transaction recurrence types
 type RecurrenceType = 'monthly' | 'yearly' | 'custom';
 
+// Transaction interface
+interface RecurringTransaction {
+  id: string;
+  amount: number;
+  note: string;
+  isIncome: boolean;
+  recurrenceType: RecurrenceType;
+  startDate?: string;
+  endDate?: string;
+}
+
 interface TransactionEditorProps {
   isVisible: boolean;
   onClose: () => void;
   isIncome?: boolean;
+  initialTransaction?: RecurringTransaction | null;
 }
 
 const TransactionEditor: React.FC<TransactionEditorProps> = ({
   isVisible,
   onClose,
-  isIncome = true
+  isIncome = true,
+  initialTransaction = null
 }) => {
-  const [amount, setAmount] = useState('');
-  const [note, setNote] = useState('');
+  const [amount, setAmount] = useState<string>('');
+  const [note, setNote] = useState<string>('');
   const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>('monthly');
 
   // For custom date range
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [startDate, setStartDate] = useState(new Date());
-  const [endDate, setEndDate] = useState(new Date());
-  const [tempDate, setTempDate] = useState(new Date());
-  const [selectingStartDate, setSelectingStartDate] = useState(true);
+  const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
+  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [endDate, setEndDate] = useState<Date>(new Date());
+  const [tempDate, setTempDate] = useState<Date>(new Date());
+  const [selectingStartDate, setSelectingStartDate] = useState<boolean>(true);
+
+  // Set initial values if editing an existing transaction
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+    useEffect(() => {
+    if (initialTransaction) {
+      setAmount(initialTransaction.amount.toString());
+      setNote(initialTransaction.note || '');
+      setRecurrenceType(initialTransaction.recurrenceType || 'monthly');
+
+      if (initialTransaction.startDate) {
+        setStartDate(new Date(initialTransaction.startDate));
+      }
+
+      if (initialTransaction.endDate) {
+        setEndDate(new Date(initialTransaction.endDate));
+      }
+    } else {
+      // Reset form for new transactions
+      setAmount('');
+      setNote('');
+      setRecurrenceType('monthly');
+      setStartDate(new Date());
+      setEndDate(new Date());
+    }
+  }, [initialTransaction, isVisible]);
 
   const handleSave = async () => {
     try {
@@ -50,22 +87,29 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
         return;
       }
 
-      // TODO: Implement actual saving logic with the Transaction provider
-      console.log('Saving transaction', {
+      // Prepare transaction data
+      const transactionData: RecurringTransaction = {
         amount: parsedAmount,
         note,
         recurrenceType,
-        startDate: recurrenceType === 'custom' ? startDate.toISOString() : null,
-        endDate: recurrenceType === 'custom' ? endDate.toISOString() : null,
-        isIncome
-      });
+        startDate: recurrenceType === 'custom' ? startDate.toISOString() : undefined,
+        endDate: recurrenceType === 'custom' ? endDate.toISOString() : undefined,
+        isIncome,
+        id: initialTransaction ? initialTransaction.id : Date.now().toString()
+      };
 
-      // Reset form
+      console.log('Saving transaction', transactionData);
+
+      // In a real app, we would call a function to save the transaction
+      // If editing: updateTransaction(transactionData)
+      // If creating: addTransaction(transactionData)
+
+      // Reset form and close
       setAmount('');
       setNote('');
       setRecurrenceType('monthly');
-
       onClose();
+
     } catch (error) {
       console.error('Failed to save transaction:', error);
       Alert.alert('Error', 'Failed to save transaction. Please try again.');
@@ -121,8 +165,10 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
 
     const monthOptions = months.map((month, index) => (
       <TouchableOpacity
-        key={`month-${// biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-index}`}
+        key={`month-${
+          // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+          index
+        }`}
         style={[styles.pickerOption, tempDate.getMonth() === index && styles.selectedPickerOption]}
         onPress={() => {
           const newDate = new Date(tempDate);
@@ -208,7 +254,7 @@ index}`}
     );
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date): string => {
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -225,7 +271,9 @@ index}`}
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>
-            {isIncome ? 'Add Recurring Income' : 'Add Recurring Expense'}
+            {initialTransaction
+              ? `Edit ${isIncome ? 'Income' : 'Expense'}`
+              : `Add Recurring ${isIncome ? 'Income' : 'Expense'}`}
           </Text>
 
           <View style={styles.inputContainer}>

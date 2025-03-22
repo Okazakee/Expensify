@@ -2,30 +2,30 @@ import type React from 'react';
 import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import TransactionManager from './TransactionManager';
+import { useRouter } from 'expo-router';
+import TransactionEditor from './TransactionEditor';
 
 interface IncomeSectionProps {
-  onIncomePress: () => void;
-  onExpensePress: () => void;
+  onIncomePress?: () => void;
+  onExpensePress?: () => void;
 }
 
-const IncomeSection: React.FC<IncomeSectionProps> = ({
-  onIncomePress,
-  onExpensePress
-}) => {
-
-  const [showTransactionManager, setShowTransactionManager] = useState(false);
+const IncomeSection: React.FC<IncomeSectionProps> = () => {
+  const router = useRouter();
+  const [showIncomeEditor, setShowIncomeEditor] = useState(false);
+  const [showExpenseEditor, setShowExpenseEditor] = useState(false);
 
   const handleIncomePress = () => {
-    onIncomePress();
+    setShowIncomeEditor(true);
   };
 
   const handleExpensePress = () => {
-    onExpensePress();
+    setShowExpenseEditor(true);
   };
 
   const handleManageTransactions = () => {
-    setShowTransactionManager(true);
+    // Navigate to transactions management screen
+    router.push('/transactions');
   };
 
   return (
@@ -58,9 +58,18 @@ const IncomeSection: React.FC<IncomeSectionProps> = ({
         </TouchableOpacity>
       </View>
 
-      <TransactionManager
-        isVisible={showTransactionManager}
-        onClose={() => setShowTransactionManager(false)}
+      {/* Income Editor Modal */}
+      <TransactionEditor
+        isVisible={showIncomeEditor}
+        onClose={() => setShowIncomeEditor(false)}
+        isIncome={true}
+      />
+
+      {/* Expense Editor Modal */}
+      <TransactionEditor
+        isVisible={showExpenseEditor}
+        onClose={() => setShowExpenseEditor(false)}
+        isIncome={false}
       />
     </View>
   );

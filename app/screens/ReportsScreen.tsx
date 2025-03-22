@@ -108,6 +108,11 @@ const ReportsScreen = () => {
         }}
       />
 
+      <View style={styles.headerContainer}>
+        <Text style={styles.headerTitle}>Financial Analytics</Text>
+        <Text style={styles.headerSubtitle}>Track and analyze your spending patterns</Text>
+      </View>
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -195,6 +200,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#121212',
     paddingTop: 60,
     paddingBottom: 100
+  },
+  headerContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 8,
   },
   scrollContent: {
     padding: 16,

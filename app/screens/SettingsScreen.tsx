@@ -116,6 +116,10 @@ const SettingsScreen = () => {
         }}
       />
 
+      <View style={styles.headerContainer}>
+        <Text style={styles.headerTitle}>App Settings</Text>
+      </View>
+
       <View style={styles.content}>
         {/* Appearance */}
         <View style={styles.section}>
@@ -191,6 +195,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#121212',
     paddingTop: 60,
+  },
+  headerContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
   },
   content: {
     flex: 1,

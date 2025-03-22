@@ -120,6 +120,11 @@ const ExpenseListScreen = () => {
         }}
       />
 
+      <View style={styles.headerContainer}>
+        <Text style={styles.headerTitle}>Expense List</Text>
+        <Text style={styles.headerSubtitle}>View and manage all your expenses</Text>
+      </View>
+
       {renderFilterBanner()}
 
       <FlatList
@@ -137,8 +142,8 @@ const ExpenseListScreen = () => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="#15E8FE0"
-            colors={["#15E8FE0"]}
+            tintColor="#15E8FE"
+            colors={["#15E8FE"]}
           />
         }
       />
@@ -152,6 +157,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#121212',
     paddingTop: 60,
+  },
+  headerContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 8,
   },
   listContent: {
     padding: 16,
@@ -204,11 +224,11 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#15E8FE0',
+    backgroundColor: '#15E8FE',
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 5,
-    shadowColor: '#15E8FE0',
+    shadowColor: '#15E8FE',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
