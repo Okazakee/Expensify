@@ -15,6 +15,7 @@ import * as Haptics from 'expo-haptics';
 import { useExpenses } from '../contexts/ExpensesContext';
 import { useExpensesFilters } from '../hooks/useExpenses';
 import ExpenseItem from '../components/ExpenseItem';
+import type { Expense } from '../database/schema';
 
 const ExpenseListScreen = () => {
   const router = useRouter();
@@ -23,8 +24,6 @@ const ExpenseListScreen = () => {
     filteredExpenses,
     isFiltering,
     activeFilter,
-    filterByCategory,
-    filterByDateRange,
     clearFilters,
     getSelectedCategoryName
   } = useExpensesFilters();
@@ -39,8 +38,11 @@ const ExpenseListScreen = () => {
     setRefreshing(false);
   }, [refreshData]);
 
-  const handleExpensePress = (expense: any) => { /* TODO fix type later */
-    router.push(`/expense/${expense.id}`);
+  const handleExpensePress = (expense: Expense) => {
+    router.push({
+      pathname: "/(expenses)/[id]" as never,
+      params: { id: expense.id }
+    });
   };
 
   const handleAddExpense = () => {

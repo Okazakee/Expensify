@@ -8,6 +8,7 @@ import * as Haptics from 'expo-haptics';
 import { useExpenses } from '../contexts/ExpensesContext';
 import Summary from '../components/Summary';
 import ExpenseItem from '../components/ExpenseItem';
+import type { Expense } from '../database/schema';
 
 const HomeScreen = () => {
   const router = useRouter();
@@ -26,28 +27,31 @@ const HomeScreen = () => {
     setRefreshing(false);
   }, [refreshData]);
 
-  const handleExpensePress = (expense: any) => { /* TODO fix type later */
-    router.push(`/expenses/${expense.id}`);
-  };
+  const handleExpensePress = (expense: Expense) => {
+    router.push({
+      pathname: "/(expenses)/[id]" as never,
+      params: { id: expense.id }
+    });
+};
 
   const handleAddExpense = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push('/add-expense');
+    router.push({ pathname: "/add-expense" });
   };
 
   const handleViewReports = () => {
     Haptics.selectionAsync();
-    router.push('/reports');
+    router.push({ pathname: "/reports" });
   };
 
   const handleViewAllExpenses = () => {
     Haptics.selectionAsync();
-    router.push('/expenses');
+    router.push({ pathname: "/expenses" });
   };
 
   const handleOpenSettings = () => {
     Haptics.selectionAsync();
-    router.push('/settings');
+    router.push({ pathname: "/settings" });
   };
 
   // Only show the most recent 5 expenses

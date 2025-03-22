@@ -15,7 +15,6 @@
     "assetBundlePatterns": [
       "**/*"
     ],
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.okazakee.expensify"
@@ -30,8 +29,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/icon.png",
-      "themeColor": "#121212"
+      "favicon": "./assets/images/icon.png"
     },
     "plugins": [
       "expo-router",
@@ -46,11 +44,8 @@
       ]
     ],
     "experiments": {
-      "typedRoutes": true
-    },
-    "description": "A simple yet powerful expense tracking app created by Okazakee",
-    "githubUrl": "https://github.com/okazakee/expensify",
-    "privacy": "unlisted",
-    "primaryColor": "#6200EE"
+      "typedRoutes": true,
+      "tsconfigPaths": true
+    }
   }
 }
