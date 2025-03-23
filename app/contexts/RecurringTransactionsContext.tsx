@@ -131,6 +131,15 @@ export const RecurringTransactionsProvider: React.FC<{children: React.ReactNode}
       // After processing, get the updated transactions
       const updatedTransactions = await getRecurringTransactions();
 
+      // Clear notification markers for processed transactions
+      // (we can identify them by having a lastProcessed date that's the current date)
+      const today = new Date().toISOString().split('T')[0];
+      for (const transaction of updatedTransactions) {
+        if (transaction.lastProcessed === today) {
+          await notificationUtils.clearScheduledNotification(transaction.id);
+        }
+      }
+
       // Refresh notifications for all active transactions
       await notificationUtils.checkAndScheduleNotifications(updatedTransactions);
 

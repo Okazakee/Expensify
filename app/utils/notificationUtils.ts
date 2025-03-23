@@ -9,6 +9,7 @@ import { formatCurrency } from './currencyUtils';
 // Keys for storing notification settings
 const NOTIFICATIONS_ENABLED_KEY = '@expensify_notifications_enabled';
 const PUSH_TOKEN_KEY = '@expensify_push_token';
+const SCHEDULED_NOTIFICATIONS_KEY = '@expensify_scheduled_notifications';
 
 // Configure default notification behavior
 Notifications.setNotificationHandler({
@@ -122,6 +123,13 @@ export const scheduleTransactionNotification = async (
       return null;
     }
 
+    // Check if we've already scheduled this notification
+    const scheduledNotifications = await getScheduledNotifications();
+    if (scheduledNotifications[transaction.id]) {
+      // Already scheduled, don't schedule again
+      return null;
+    }
+
     // Calculate notification time (24 hours before due date)
     const notificationDate = new Date(dueDate);
     notificationDate.setDate(notificationDate.getDate() - 1);
@@ -158,6 +166,9 @@ export const scheduleTransactionNotification = async (
       identifier,
     });
 
+    // Mark this notification as scheduled
+    await markNotificationScheduled(transaction.id);
+
     return notificationId;
   } catch (error) {
     console.error('Error scheduling transaction notification:', error);
@@ -172,6 +183,9 @@ export const cancelTransactionNotification = async (transactionId: string): Prom
   try {
     const identifier = getNotificationIdentifier(transactionId);
     await Notifications.cancelScheduledNotificationAsync(identifier);
+
+    // Clear the scheduled notification marker
+    await clearScheduledNotification(transactionId);
   } catch (error) {
     console.error('Error canceling transaction notification:', error);
   }
@@ -220,6 +234,36 @@ export const cancelAllNotifications = async (): Promise<void> => {
     await Notifications.cancelAllScheduledNotificationsAsync();
   } catch (error) {
     console.error('Error canceling all notifications:', error);
+  }
+};
+
+const getScheduledNotifications = async (): Promise<Record<string, boolean>> => {
+  try {
+    const value = await AsyncStorage.getItem(SCHEDULED_NOTIFICATIONS_KEY);
+    return value ? JSON.parse(value) : {};
+  } catch (error) {
+    console.error('Error getting scheduled notifications:', error);
+    return {};
+  }
+};
+
+const markNotificationScheduled = async (transactionId: string): Promise<void> => {
+  try {
+    const scheduled = await getScheduledNotifications();
+    scheduled[transactionId] = true;
+    await AsyncStorage.setItem(SCHEDULED_NOTIFICATIONS_KEY, JSON.stringify(scheduled));
+  } catch (error) {
+    console.error('Error marking notification as scheduled:', error);
+  }
+};
+
+const clearScheduledNotification = async (transactionId: string): Promise<void> => {
+  try {
+    const scheduled = await getScheduledNotifications();
+    delete scheduled[transactionId];
+    await AsyncStorage.setItem(SCHEDULED_NOTIFICATIONS_KEY, JSON.stringify(scheduled));
+  } catch (error) {
+    console.error('Error clearing scheduled notification:', error);
   }
 };
 
