@@ -1,11 +1,12 @@
 import type React from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions
+ View,
+ Text,
+ StyleSheet,
+ TouchableOpacity,
+ Dimensions
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import type { Category } from '../database/schema';
@@ -25,31 +26,30 @@ const CategoryPicker: React.FC<CategoryPickerProps> = ({
   selectedCategoryId,
   onSelectCategory
 }) => {
+  const router = useRouter();
+
   // Don't filter categories based on transaction type - show all categories
   const filteredCategories = categories;
 
   // Create rows of categories (2 per row)
   const renderCategories = () => {
     const rows = [];
-
     for (let i = 0; i < filteredCategories.length; i += 2) {
       const row = (
         <View key={`row-${i}`} style={styles.columnWrapper}>
           {renderCategoryItem(filteredCategories[i])}
-          {i + 1 < filteredCategories.length ? 
-            renderCategoryItem(filteredCategories[i + 1]) : 
+          {i + 1 < filteredCategories.length ?
+            renderCategoryItem(filteredCategories[i + 1]) :
             <View style={{ width: ITEM_WIDTH }} />}
         </View>
       );
       rows.push(row);
     }
-
     return rows;
   };
 
   const renderCategoryItem = (item: Category) => {
     const isSelected = selectedCategoryId === item.id;
-
     return (
       <TouchableOpacity
         key={item.id}
@@ -70,9 +70,21 @@ const CategoryPicker: React.FC<CategoryPickerProps> = ({
     );
   };
 
+  const handleEditCategories = () => {
+    router.push('/screens/CategoryManagementScreen');
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Category</Text>
+      <View style={styles.headerContainer}>
+        <Text style={styles.title}>Category</Text>
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={handleEditCategories}
+        >
+          <Text style={styles.editButtonText}>Edit Categories</Text>
+        </TouchableOpacity>
+      </View>
       <View style={styles.categoriesContainer}>
         {renderCategories()}
       </View>
@@ -84,11 +96,27 @@ const styles = StyleSheet.create({
   container: {
     marginVertical: 16,
   },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   title: {
     fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
-    marginBottom: 12,
+  },
+  editButton: {
+    backgroundColor: 'rgba(21, 232, 254, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+  },
+  editButtonText: {
+    color: '#15E8FE',
+    fontSize: 12,
+    fontWeight: '600',
   },
   categoriesContainer: {
     width: '100%',

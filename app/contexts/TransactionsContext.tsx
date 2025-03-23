@@ -11,9 +11,9 @@ import {
   getTransactionsByDateRange,
   getTotalByCategory,
   getMonthlyTransactions,
-  getIncomeSummary,
-  getExpenseSummary,
-  getNetIncome
+  addCategory as dbAddCategory,
+  updateCategory as dbUpdateCategory,
+  deleteCategory as dbDeleteCategory
 } from '../database/database';
 import type { Transaction, Category } from '../database/schema';
 import { getCurrentYear, getISODate } from '../utils/dateUtils';
@@ -39,14 +39,17 @@ interface TransactionsContextType {
     expenses: {month: number, total: number}[];
     incomes: {month: number, total: number}[];
   };
-  // Actions
+  // Transaction Actions
   addNewTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<string>;
   updateExistingTransaction: (transaction: Transaction) => Promise<void>;
   removeTransaction: (id: string) => Promise<void>;
   refreshData: () => Promise<void>;
-}
 
-const TransactionsContext = createContext<TransactionsContextType | undefined>(undefined);
+  // Category Management Actions
+  addCategory: (category: Omit<Category, 'id'>) => Promise<string>;
+  updateCategory: (category: Category) => Promise<void>;
+  deleteCategory: (categoryId: string) => Promise<void>;
+}
 
 export const TransactionsProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const { startDate, endDate } = usePeriod();
@@ -88,7 +91,7 @@ export const TransactionsProvider: React.FC<{children: React.ReactNode}> = ({ ch
 
   // Load period-specific data when period changes
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
-    useEffect(() => {
+  useEffect(() => {
     if (!isLoading) {
       loadPeriodData();
     }
@@ -133,14 +136,14 @@ export const TransactionsProvider: React.FC<{children: React.ReactNode}> = ({ ch
 
   const loadPeriodData = async () => {
     try {
-      // Get current period transactions for the monthly view
+      // Get current period transactions
       const periodTransactions = await getTransactionsByDateRange(startDate, endDate);
       const sortedTransactions = [...periodTransactions].sort((a, b) =>
         new Date(b.date).getTime() - new Date(a.date).getTime()
       );
       setCurrentPeriodTransactions(sortedTransactions);
 
-      // Calculate monthly totals for the selected period only
+      // Calculate monthly totals for the selected period
       const periodExpenses = periodTransactions
         .filter(tx => !tx.isIncome)
         .reduce((sum, tx) => sum + tx.amount, 0);
@@ -167,9 +170,9 @@ export const TransactionsProvider: React.FC<{children: React.ReactNode}> = ({ ch
 
       // Update states
       setMonthlyTotal({
-        expenses: periodExpenses,   // Expenses for the selected month only
-        incomes: periodIncomes,     // Income for the selected month only
-        net: cumulativeNet          // Cumulative balance up to today
+        expenses: periodExpenses,
+        incomes: periodIncomes,
+        net: cumulativeNet
       });
 
       // Also load category totals for the period
@@ -231,6 +234,58 @@ export const TransactionsProvider: React.FC<{children: React.ReactNode}> = ({ ch
     }
   };
 
+  // Category Management Methods
+  const addCategory = async (category: Omit<Category, 'id'>): Promise<string> => {
+    try {
+      const id = await dbAddCategory(category);
+
+      // Refresh categories after adding
+      const updatedCategories = await getCategories();
+      setCategories(updatedCategories);
+
+      return id;
+    } catch (error) {
+      console.error('Error adding category:', error);
+      Alert.alert('Error', 'Failed to add category. Please try again.');
+      throw error;
+    }
+  };
+
+  const updateCategory = async (category: Category): Promise<void> => {
+    try {
+      await dbUpdateCategory(category);
+
+      // Refresh categories after updating
+      const updatedCategories = await getCategories();
+      setCategories(updatedCategories);
+    } catch (error) {
+      console.error('Error updating category:', error);
+      Alert.alert('Error', 'Failed to update category. Please try again.');
+      throw error;
+    }
+  };
+
+  const deleteCategory = async (categoryId: string): Promise<void> => {
+    try {
+      await dbDeleteCategory(categoryId);
+
+      // Refresh categories after deleting
+      const updatedCategories = await getCategories();
+      setCategories(updatedCategories);
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      if (error instanceof Error && error.message.includes('transactions')) {
+        Alert.alert(
+          'Cannot Delete Category',
+          'This category is associated with existing transactions and cannot be deleted.'
+        );
+      } else {
+        Alert.alert('Error', 'Failed to delete category. Please try again.');
+      }
+      throw error;
+    }
+  };
+
   const value = {
     transactions,
     expenses,
@@ -244,7 +299,11 @@ export const TransactionsProvider: React.FC<{children: React.ReactNode}> = ({ ch
     addNewTransaction,
     updateExistingTransaction,
     removeTransaction,
-    refreshData
+    refreshData,
+    // Category management methods
+    addCategory,
+    updateCategory,
+    deleteCategory
   };
 
   return (
@@ -261,5 +320,7 @@ export const useTransactions = () => {
   }
   return context;
 };
+
+const TransactionsContext = createContext<TransactionsContextType | undefined>(undefined);
 
 export default TransactionsContext;

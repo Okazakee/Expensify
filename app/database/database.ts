@@ -9,6 +9,7 @@ import {
   type Transaction,
   type RecurringTransaction
 } from './schema';
+import { generateUniqueId } from '../utils/categoryEditUtils';
 
 const db = SQLite.openDatabaseSync(DATABASE_NAME);
 
@@ -554,6 +555,32 @@ export const resetDatabase = async (): Promise<void> => {
   }
 };
 
+export const addCategory = async (category: Omit<Category, 'id'>): Promise<string> => {
+  const id = generateUniqueId();
+  await db.runAsync(
+    'INSERT INTO categories (id, name, color, icon) VALUES (?, ?, ?, ?)',
+    [id, category.name, category.color, category.icon]
+  );
+  return id;
+};
+
+export const updateCategory = async (category: Category): Promise<void> => {
+  await db.runAsync(
+    'UPDATE categories SET name = ?, color = ?, icon = ? WHERE id = ?',
+    [category.name, category.color, category.icon, category.id]
+  );
+};
+
+export const deleteCategory = async (categoryId: string): Promise<void> => {
+  // Prevent deletion if category has associated transactions
+  const transactions = await getTransactionsByCategory(categoryId);
+  if (transactions.length > 0) {
+    throw new Error('Cannot delete category with existing transactions');
+  }
+
+  await db.runAsync('DELETE FROM categories WHERE id = ?', [categoryId]);
+};
+
 export default {
   initDatabase,
   getCategories,
@@ -576,5 +603,8 @@ export default {
   updateRecurringTransaction,
   deleteRecurringTransaction,
   processRecurringTransactions,
-  resetDatabase
+  resetDatabase,
+  addCategory,
+  updateCategory,
+  deleteCategory
 };
