@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -42,15 +42,108 @@ const ReportsScreen = () => {
   const [incomeChartError, setIncomeChartError] = useState(false);
   const [trendChartError, setTrendChartError] = useState(false);
 
-  // Debug logging for production build troubleshooting
-  useEffect(() => {
-    console.log('ReportsScreen loaded, data:', {
-      expensesCategories: categoryTotals.expenses.length,
-      incomeCategories: categoryTotals.incomes.length,
-      monthlyExpenses: monthlyData.expenses.length,
-      monthlyIncomes: monthlyData.incomes.length
-    });
-  }, [categoryTotals, monthlyData]);
+  // Memoize expensive chart data preparation
+  const expensesPieChartData = useMemo(() => {
+    return categoryTotals.expenses
+      .filter(item => item && typeof item.total === 'number' && !Number.isNaN(item.total) && item.total > 0)
+      .map(item => {
+        const category = categories.find(c => c.id === item.categoryId) || {
+          id: 'uncategorized',
+          name: 'Uncategorized',
+          color: '#9CA3AF',
+          icon: 'help-circle'
+        };
+        return {
+          name: category.name,
+          amount: item.total,
+          color: category.color,
+          legendFontColor: '#FFFFFF',
+          legendFontSize: 12
+        };
+      }).sort((a, b) => b.amount - a.amount);
+  }, [categoryTotals.expenses, categories]);
+
+  const incomesPieChartData = useMemo(() => {
+    return categoryTotals.incomes
+      .filter(item => item && typeof item.total === 'number' && !Number.isNaN(item.total) && item.total > 0)
+      .map(item => {
+        const category = categories.find(c => c.id === item.categoryId) || {
+          id: 'uncategorized',
+          name: 'Uncategorized',
+          color: '#9CA3AF',
+          icon: 'help-circle'
+        };
+        return {
+          name: category.name,
+          amount: item.total,
+          color: category.color,
+          legendFontColor: '#FFFFFF',
+          legendFontSize: 12
+        };
+      }).sort((a, b) => b.amount - a.amount);
+  }, [categoryTotals.incomes, categories]);
+
+  // Memoize line chart data preparation
+  const lineChartData = useMemo(() => {
+    // Safely prepare line chart data
+    const validMonthlyExpenses = monthlyData.expenses
+      .filter(data => data && typeof data.month === 'number' && typeof data.total === 'number' && !Number.isNaN(data.total))
+      .sort((a, b) => a.month - b.month);
+
+    const validMonthlyIncomes = monthlyData.incomes
+      .filter(data => data && typeof data.month === 'number' && typeof data.total === 'number' && !Number.isNaN(data.total))
+      .sort((a, b) => a.month - b.month);
+
+    // Ensure we have labels even if no data
+    const monthLabels = validMonthlyExpenses.length > 0
+      ? validMonthlyExpenses.map(data => getMonthName(data.month).substring(0, 3))
+      : validMonthlyIncomes.length > 0
+        ? validMonthlyIncomes.map(data => getMonthName(data.month).substring(0, 3))
+        : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+
+    // Ensure we have data points even if empty
+    const expenseValues = validMonthlyExpenses.length > 0
+      ? validMonthlyExpenses.map(data => data.total)
+      : [0, 0, 0];
+
+    const incomeValues = validMonthlyIncomes.length > 0
+      ? validMonthlyIncomes.map(data => data.total)
+      : [0, 0, 0];
+
+    return {
+      labels: monthLabels.length > 0 ? monthLabels : ['Jan', 'Feb', 'Mar'],
+      datasets: [
+        {
+          data: expenseValues.length > 0 ? expenseValues : [0, 0, 0],
+          color: () => '#FF6B6B', // Red for expenses
+          strokeWidth: 2
+        },
+        {
+          data: incomeValues.length > 0 ? incomeValues : [0, 0, 0],
+          color: () => '#4CAF50', // Green for incomes
+          strokeWidth: 2
+        }
+      ],
+      legend: ['Expenses', 'Incomes']
+    };
+  }, [monthlyData.expenses, monthlyData.incomes]);
+
+  // Memoize chart config
+  const chartConfig = useMemo(() => ({
+    backgroundGradientFrom: '#1E1E1E',
+    backgroundGradientTo: '#1E1E1E',
+    decimalPlaces: 0,
+    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+    style: {
+      borderRadius: 16
+    },
+    propsForDots: {
+      r: '6',
+      strokeWidth: '2',
+      stroke: '#5E5CE6'
+    }
+  }), []);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -67,104 +160,9 @@ const ReportsScreen = () => {
     }
   }, [refreshData]);
 
-  // Prepare category data for pie charts with safety checks
-  const expensesPieChartData = categoryTotals.expenses
-    .filter(item => item && typeof item.total === 'number' && !Number.isNaN(item.total) && item.total > 0)
-    .map(item => {
-      const category = categories.find(c => c.id === item.categoryId) || {
-        id: 'uncategorized',
-        name: 'Uncategorized',
-        color: '#9CA3AF',
-        icon: 'help-circle'
-      };
-      return {
-        name: category.name,
-        amount: item.total,
-        color: category.color,
-        legendFontColor: '#FFFFFF',
-        legendFontSize: 12
-      };
-    }).sort((a, b) => b.amount - a.amount);
-
-  const incomesPieChartData = categoryTotals.incomes
-    .filter(item => item && typeof item.total === 'number' && !Number.isNaN(item.total) && item.total > 0)
-    .map(item => {
-      const category = categories.find(c => c.id === item.categoryId) || {
-        id: 'uncategorized',
-        name: 'Uncategorized',
-        color: '#9CA3AF',
-        icon: 'help-circle'
-      };
-      return {
-        name: category.name,
-        amount: item.total,
-        color: category.color,
-        legendFontColor: '#FFFFFF',
-        legendFontSize: 12
-      };
-    }).sort((a, b) => b.amount - a.amount);
-
-  // Safely prepare line chart data
-  const validMonthlyExpenses = monthlyData.expenses
-    .filter(data => data && typeof data.month === 'number' && typeof data.total === 'number' && !Number.isNaN(data.total))
-    .sort((a, b) => a.month - b.month);
-
-  const validMonthlyIncomes = monthlyData.incomes
-    .filter(data => data && typeof data.month === 'number' && typeof data.total === 'number' && !Number.isNaN(data.total))
-    .sort((a, b) => a.month - b.month);
-
-  // Ensure we have labels even if no data
-  const monthLabels = validMonthlyExpenses.length > 0
-    ? validMonthlyExpenses.map(data => getMonthName(data.month).substring(0, 3))
-    : validMonthlyIncomes.length > 0
-      ? validMonthlyIncomes.map(data => getMonthName(data.month).substring(0, 3))
-      : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-
-  // Ensure we have data points even if empty
-  const expenseValues = validMonthlyExpenses.length > 0
-    ? validMonthlyExpenses.map(data => data.total)
-    : [0, 0, 0];
-
-  const incomeValues = validMonthlyIncomes.length > 0
-    ? validMonthlyIncomes.map(data => data.total)
-    : [0, 0, 0];
-
-  // Prepare line chart data with safety fallbacks
-  const lineChartData = {
-    labels: monthLabels.length > 0 ? monthLabels : ['Jan', 'Feb', 'Mar'],
-    datasets: [
-      {
-        data: expenseValues.length > 0 ? expenseValues : [0, 0, 0],
-        color: () => '#FF6B6B', // Red for expenses
-        strokeWidth: 2
-      },
-      {
-        data: incomeValues.length > 0 ? incomeValues : [0, 0, 0],
-        color: () => '#4CAF50', // Green for incomes
-        strokeWidth: 2
-      }
-    ],
-    legend: ['Expenses', 'Incomes']
-  };
-
-  const chartConfig = {
-    backgroundGradientFrom: '#1E1E1E',
-    backgroundGradientTo: '#1E1E1E',
-    decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-    style: {
-      borderRadius: 16
-    },
-    propsForDots: {
-      r: '6',
-      strokeWidth: '2',
-      stroke: '#5E5CE6'
-    }
-  };
-
-  // Render expense chart with error handling
-  const renderExpensePieChart = () => {
+  // Memoize render functions for chart components
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+    const renderExpensePieChart = useCallback(() => {
     if (expenseChartError) {
       return <Text style={styles.errorText}>Unable to display expense chart</Text>;
     }
@@ -193,10 +191,10 @@ const ReportsScreen = () => {
       setExpenseChartError(true);
       return <Text style={styles.errorText}>Error rendering expense chart</Text>;
     }
-  };
+  }, [expensesPieChartData, chartConfig, expenseChartError, width]);
 
-  // Render income chart with error handling
-  const renderIncomePieChart = () => {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+  const renderIncomePieChart = useCallback(() => {
     if (incomeChartError) {
       return <Text style={styles.errorText}>Unable to display income chart</Text>;
     }
@@ -225,15 +223,18 @@ const ReportsScreen = () => {
       setIncomeChartError(true);
       return <Text style={styles.errorText}>Error rendering income chart</Text>;
     }
-  };
+  }, [incomesPieChartData, chartConfig, incomeChartError, width]);
 
-  // Render trend chart with error handling
-  const renderTrendChart = () => {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+  const renderTrendChart = useCallback(() => {
     if (trendChartError) {
       return <Text style={styles.errorText}>Unable to display trend chart</Text>;
     }
 
-    if ((validMonthlyExpenses.length === 0 && validMonthlyIncomes.length === 0)) {
+    const hasExpenses = monthlyData.expenses.some(item => item && item.total > 0);
+    const hasIncomes = monthlyData.incomes.some(item => item && item.total > 0);
+
+    if (!hasExpenses && !hasIncomes) {
       return <Text style={styles.emptyText}>No monthly trend data available</Text>;
     }
 
@@ -259,11 +260,10 @@ const ReportsScreen = () => {
       setTrendChartError(true);
       return <Text style={styles.errorText}>Error rendering trend chart</Text>;
     }
-  };
+  }, [lineChartData, chartConfig, trendChartError, monthlyData.expenses, monthlyData.incomes, width]);
 
-  // Safely render category breakdown
   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    const renderCategoryBreakdown = (data: any[], total: number, type: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | null | undefined) => {
+  const renderCategoryBreakdown = useCallback((data: any[], total: any, type: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined) => {
     if (data.length === 0) {
       return (
         <Text style={styles.emptyText}>No {type} data available</Text>
@@ -272,8 +272,8 @@ const ReportsScreen = () => {
 
     // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     return data.map((item: { color: any; name: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; amount: number; }, index: any) => (
-      <View key={`${type}-${// biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-index}`} style={styles.categoryBreakdownItem}>
+      // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+      <View key={`${type}-${index}`} style={styles.categoryBreakdownItem}>
         <View style={styles.categoryLabelContainer}>
           <View style={[styles.categoryColorDot, { backgroundColor: item.color }]} />
           <Text style={styles.categoryLabel}>{item.name}</Text>
@@ -286,9 +286,9 @@ index}`} style={styles.categoryBreakdownItem}>
         </View>
       </View>
     ));
-  };
+  }, []);
 
-  const handleExportReports = async () => {
+  const handleExportReports = useCallback(async () => {
     try {
       const periodName = `${selectedMonthName}_${selectedYear}`;
       await exportFinancialReport(
@@ -302,7 +302,16 @@ index}`} style={styles.categoryBreakdownItem}>
       console.error('Error exporting reports:', error);
       // Alert is already handled in the exportFinancialReport function
     }
-  };
+  }, [selectedMonthName, selectedYear, currentPeriodTransactions, categories, monthlyData, categoryTotals]);
+
+  // Toggle handlers with useCallback
+  const handleToggleExpenses = useCallback(() => {
+    setShowExpenses(prev => !prev);
+  }, []);
+
+  const handleToggleIncomes = useCallback(() => {
+    setShowIncomes(prev => !prev);
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -327,7 +336,7 @@ index}`} style={styles.categoryBreakdownItem}>
           <Text style={styles.toggleLabel}>Expenses</Text>
           <Switch
             value={showExpenses}
-            onValueChange={setShowExpenses}
+            onValueChange={handleToggleExpenses}
             trackColor={{ false: '#3e3e3e', true: 'rgba(255, 107, 107, 0.3)' }}
             thumbColor={showExpenses ? '#FF6B6B' : '#f4f3f4'}
           />
@@ -337,7 +346,7 @@ index}`} style={styles.categoryBreakdownItem}>
           <Text style={styles.toggleLabel}>Incomes</Text>
           <Switch
             value={showIncomes}
-            onValueChange={setShowIncomes}
+            onValueChange={handleToggleIncomes}
             trackColor={{ false: '#3e3e3e', true: 'rgba(76, 175, 80, 0.3)' }}
             thumbColor={showIncomes ? '#4CAF50' : '#f4f3f4'}
           />

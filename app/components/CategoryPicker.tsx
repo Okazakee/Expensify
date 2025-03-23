@@ -1,4 +1,5 @@
 import type React from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import {
  View,
  Text,
@@ -28,51 +29,37 @@ const CategoryPicker: React.FC<CategoryPickerProps> = ({
 }) => {
   const router = useRouter();
 
-  // Filter out Uncategorized category from picker
-  const filteredCategories = categories.filter(category => category.id !== 'uncategorized');
+  // Memoize filtered categories to prevent recalculation on every render
+  const filteredCategories = useMemo(() => {
+    return categories.filter(category => category.id !== 'uncategorized');
+  }, [categories]);
 
-  // Create rows of categories (2 per row)
-  const renderCategories = () => {
+  // Handle category selection with useCallback
+  const handleSelectCategory = useCallback((categoryId: string) => {
+    onSelectCategory(categoryId);
+  }, [onSelectCategory]);
+
+  // Memoize the navigation handler
+  const handleEditCategories = useCallback(() => {
+    router.push('/screens/CategoryManagementScreen');
+  }, [router]);
+
+  // Create rows of categories (2 per row) - memoized to prevent recalculation
+  const categoryRows = useMemo(() => {
     const rows = [];
     for (let i = 0; i < filteredCategories.length; i += 2) {
       const row = (
         <View key={`row-${i}`} style={styles.columnWrapper}>
-          {renderCategoryItem(filteredCategories[i])}
+          {renderCategoryItem(filteredCategories[i], selectedCategoryId, handleSelectCategory)}
           {i + 1 < filteredCategories.length ?
-            renderCategoryItem(filteredCategories[i + 1]) :
+            renderCategoryItem(filteredCategories[i + 1], selectedCategoryId, handleSelectCategory) :
             <View style={{ width: ITEM_WIDTH }} />}
         </View>
       );
       rows.push(row);
     }
     return rows;
-  };
-
-  const renderCategoryItem = (item: Category) => {
-    const isSelected = selectedCategoryId === item.id;
-    return (
-      <TouchableOpacity
-        key={item.id}
-        style={[
-          styles.categoryItem,
-          isSelected && { borderColor: item.color, borderWidth: 2 }
-        ]}
-        onPress={() => onSelectCategory(item.id)}
-      >
-        <BlurView intensity={20} tint="dark" style={styles.blurContainer}>
-          <View style={[styles.iconContainer, { backgroundColor: item.color }]}>
-            {/* biome-ignore lint/suspicious/noExplicitAny: <explanation> */}
-            <Ionicons name={item.icon as any} size={24} color="#000000" />
-          </View>
-          <Text style={styles.categoryName}>{item.name}</Text>
-        </BlurView>
-      </TouchableOpacity>
-    );
-  };
-
-  const handleEditCategories = () => {
-    router.push('/screens/CategoryManagementScreen');
-  };
+  }, [filteredCategories, selectedCategoryId, handleSelectCategory]);
 
   return (
     <View style={styles.container}>
@@ -86,9 +73,36 @@ const CategoryPicker: React.FC<CategoryPickerProps> = ({
         </TouchableOpacity>
       </View>
       <View style={styles.categoriesContainer}>
-        {renderCategories()}
+        {categoryRows}
       </View>
     </View>
+  );
+};
+
+// Extracted to a separate function to improve readability
+const renderCategoryItem = (
+  item: Category,
+  selectedCategoryId: string | null,
+  onSelectCategory: (categoryId: string) => void
+) => {
+  const isSelected = selectedCategoryId === item.id;
+  return (
+    <TouchableOpacity
+      key={item.id}
+      style={[
+        styles.categoryItem,
+        isSelected && { borderColor: item.color, borderWidth: 2 }
+      ]}
+      onPress={() => onSelectCategory(item.id)}
+    >
+      <BlurView intensity={20} tint="dark" style={styles.blurContainer}>
+        <View style={[styles.iconContainer, { backgroundColor: item.color }]}>
+          {/* biome-ignore lint/suspicious/noExplicitAny: <explanation> */}
+          <Ionicons name={item.icon as any} size={24} color="#000000" />
+        </View>
+        <Text style={styles.categoryName}>{item.name}</Text>
+      </BlurView>
+    </TouchableOpacity>
   );
 };
 
@@ -159,4 +173,21 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CategoryPicker;
+// Memoize the entire component to prevent unnecessary re-renders
+export default memo(CategoryPicker, (prevProps, nextProps) => {
+  // Only re-render if these props change
+  if (prevProps.selectedCategoryId !== nextProps.selectedCategoryId) {
+    return false;
+  }
+
+  // Check if categories array has changed
+  if (prevProps.categories.length !== nextProps.categories.length) {
+    return false;
+  }
+
+  // Check category ids (deep comparison)
+  const prevIds = prevProps.categories.map(c => c.id).sort().join(',');
+  const nextIds = nextProps.categories.map(c => c.id).sort().join(',');
+
+  return prevIds === nextIds;
+});

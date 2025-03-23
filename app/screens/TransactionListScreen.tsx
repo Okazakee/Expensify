@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -21,34 +21,50 @@ const TransactionListScreen = () => {
   const [showIncomes, setShowIncomes] = useState(true);
   const [showExpenses, setShowExpenses] = useState(true);
 
-  // Filter transactions based on toggle settings
-  const filteredTransactions = transactions.filter(transaction =>
-    (transaction.isIncome && showIncomes) ||
-    (!transaction.isIncome && showExpenses)
-  );
+  // Filter transactions based on toggle settings - memoized to prevent recalculation on every render
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter(transaction =>
+      (transaction.isIncome && showIncomes) ||
+      (!transaction.isIncome && showExpenses)
+    );
+  }, [transactions, showIncomes, showExpenses]);
 
-  // Sort transactions by date, newest first
-  const sortedTransactions = [...filteredTransactions].sort((a, b) =>
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  // Sort transactions by date, newest first - memoized to prevent resorting on every render
+  const sortedTransactions = useMemo(() => {
+    return [...filteredTransactions].sort((a, b) =>
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  }, [filteredTransactions]);
 
+  // Create callback functions with useCallback to prevent recreation on every render
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refreshData();
-    setRefreshing(false);
+    try {
+      await refreshData();
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
   }, [refreshData]);
 
-  const handleTransactionPress = (transaction: Transaction) => {
+  const handleTransactionPress = useCallback((transaction: Transaction) => {
     router.push({
       pathname: "/transaction/[id]",
       params: { id: transaction.id }
     });
-  };
+  }, [router]);
 
-  const toggleIncome = () => setShowIncomes(!showIncomes);
-  const toggleExpense = () => setShowExpenses(!showExpenses);
+  const toggleIncome = useCallback(() => {
+    setShowIncomes(prev => !prev);
+  }, []);
 
-  const renderEmptyList = () => {
+  const toggleExpense = useCallback(() => {
+    setShowExpenses(prev => !prev);
+  }, []);
+
+  // Memoize the empty list component to prevent recreation on every render
+  const renderEmptyList = useCallback(() => {
     if (isLoading || refreshing) {
       return (
         <View style={styles.emptyContainer}>
@@ -66,7 +82,15 @@ const TransactionListScreen = () => {
         </Text>
       </View>
     );
-  };
+  }, [isLoading, refreshing, showIncomes, showExpenses]);
+
+  // Memoize the render item function to prevent recreation on every render
+  const renderItem = useCallback(({ item }: { item: Transaction }) => (
+    <TransactionItem
+      transaction={item}
+      onPress={handleTransactionPress}
+    />
+  ), [handleTransactionPress]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -110,12 +134,7 @@ const TransactionListScreen = () => {
 
       <FlatList
         data={sortedTransactions}
-        renderItem={({ item }) => (
-          <TransactionItem
-            transaction={item}
-            onPress={handleTransactionPress}
-          />
-        )}
+        renderItem={renderItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={renderEmptyList}
@@ -127,6 +146,10 @@ const TransactionListScreen = () => {
             colors={["#15E8FE"]}
           />
         }
+        removeClippedSubviews={true}  // Optimize memory usage for lists
+        maxToRenderPerBatch={10}      // Limit number of items rendered per batch
+        initialNumToRender={8}        // Limit initial render amount
+        windowSize={5}                // Reduce rendering window
       />
     </SafeAreaView>
   );

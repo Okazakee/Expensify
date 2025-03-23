@@ -1,4 +1,5 @@
 import type React from 'react';
+import { memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDate } from '../utils/dateUtils';
@@ -102,4 +103,15 @@ const styles = StyleSheet.create({
   },
 });
 
-export default TransactionItem;
+// Using memo to prevent unnecessary re-renders when props don't change
+export default memo(TransactionItem, (prevProps, nextProps) => {
+  // Custom comparison function for deeper comparison
+  return (
+    prevProps.transaction.id === nextProps.transaction.id &&
+    prevProps.transaction.amount === nextProps.transaction.amount &&
+    prevProps.transaction.category === nextProps.transaction.category &&
+    prevProps.transaction.date === nextProps.transaction.date &&
+    prevProps.transaction.note === nextProps.transaction.note &&
+    prevProps.transaction.isIncome === nextProps.transaction.isIncome
+  );
+});
