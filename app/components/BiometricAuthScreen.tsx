@@ -1,4 +1,3 @@
-// app/components/BiometricAuthScreen.tsx
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import {
@@ -7,9 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Image,
   Animated,
-  Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as biometricUtils from '../utils/biometricUtils';

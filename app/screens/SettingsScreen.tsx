@@ -24,13 +24,14 @@ import * as biometricUtils from '../utils/biometricUtils';
 import { resetDatabase } from '../database/database';
 import { resetAsyncStorage } from '../utils/storageUtils';
 import CurrencySelector from '../components/CurrencySelector';
+import { exportDatabaseData, importDatabaseData } from '../utils/exportUtils';
 
 // Components
 const SettingsScreen = () => {
   // Context hooks
   const { currentCurrency } = useCurrency();
-  const { refreshData } = useTransactions();
-  const { refreshTransactions } = useRecurringTransactions();
+  const { transactions, categories, refreshData } = useTransactions();
+  const { transactions: recurringTransactions, refreshTransactions } = useRecurringTransactions();
   const { resetToCurrentMonth } = usePeriod();
   const { authenticate } = useBiometricAuth();
 
@@ -39,6 +40,8 @@ const SettingsScreen = () => {
   const [notifications, setNotifications] = useState(true);
   const [showCurrencySelector, setShowCurrencySelector] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   // Biometric state
   const [biometricAvailable, setBiometricAvailable] = useState(false);
@@ -97,24 +100,152 @@ const SettingsScreen = () => {
     setNotifications(!notifications);
   };
 
-  const handleExportData = () => {
-    Alert.alert(
-      "Export Data",
-      "This feature would export your expense data in CSV format. Not implemented for the hackathon.",
-      [{ text: "OK" }]
-    );
+  // New function to handle exporting data with biometric authentication
+  const handleExportData = async () => {
+    try {
+      // Show biometric authentication if enabled
+      if (biometricEnabled) {
+        const authenticated = await authenticate(
+          `Authenticate with ${biometricType} to export your data`,
+          async () => {
+            // This runs on successful authentication
+            performExport();
+          },
+          () => {
+            // This runs on authentication failure
+            Alert.alert(
+              "Authentication Failed",
+              "For your security, exporting data requires authentication."
+            );
+          }
+        );
+
+        // If biometrics are not enabled, proceed directly
+        if (!authenticated && !biometricEnabled) {
+          performExport();
+        }
+      } else {
+        // No biometric authentication required
+        performExport();
+      }
+    } catch (error) {
+      console.error('Error during export:', error);
+      setIsExporting(false);
+      Alert.alert(
+        "Export Failed",
+        "There was an error exporting your data. Please try again."
+      );
+    }
+  };
+
+  // Function to actually perform the export
+  const performExport = async () => {
+    try {
+      setIsExporting(true);
+
+      // Call the export function from utils
+      await exportDatabaseData(
+        transactions,
+        categories,
+        recurringTransactions
+      );
+
+      setIsExporting(false);
+    } catch (error) {
+      console.error('Error during export:', error);
+      setIsExporting(false);
+      Alert.alert(
+        "Export Failed",
+        "There was an error exporting your data. Please try again."
+      );
+    }
+  };
+
+  // New function to handle importing data with biometric authentication
+  const handleImportData = async () => {
+    try {
+      // Show confirmation dialog first as import will replace existing data
+      Alert.alert(
+        "Import Data",
+        "This will replace ALL your current data with the imported data. Make sure you have a backup of your current data if needed. Continue?",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Continue",
+            onPress: async () => {
+              // Show biometric authentication if enabled
+              if (biometricEnabled) {
+                const authenticated = await authenticate(
+                  `Authenticate with ${biometricType} to import data`,
+                  async () => {
+                    // This runs on successful authentication
+                    performImport();
+                  },
+                  () => {
+                    // This runs on authentication failure
+                    Alert.alert(
+                      "Authentication Failed",
+                      "For your security, importing data requires authentication."
+                    );
+                  }
+                );
+
+                // If biometrics are not enabled, proceed directly
+                if (!authenticated && !biometricEnabled) {
+                  performImport();
+                }
+              } else {
+                // No biometric authentication required
+                performImport();
+              }
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Error during import:', error);
+      setIsImporting(false);
+      Alert.alert(
+        "Import Failed",
+        "There was an error importing your data. Please try again."
+      );
+    }
+  };
+
+  // Function to actually perform the import
+  const performImport = async () => {
+    try {
+      setIsImporting(true);
+
+      // Call the import function from utils
+      const result = await importDatabaseData();
+
+      // Show result to user
+      if (result.success) {
+        // Refresh all app data after import
+        await refreshAppData();
+
+        Alert.alert(
+          "Import Successful",
+          `Your data has been imported successfully.\n\nImported: ${result.stats?.transactions} transactions, ${result.stats?.recurringTransactions} recurring transactions.`
+        );
+      } else {
+        Alert.alert("Import Failed", result.message);
+      }
+
+      setIsImporting(false);
+    } catch (error) {
+      console.error('Error during import:', error);
+      setIsImporting(false);
+      Alert.alert(
+        "Import Failed",
+        "There was an error importing your data. Please try again."
+      );
+    }
   };
 
   const handleCurrencySelection = () => {
     setShowCurrencySelector(true);
-  };
-
-  const handleImportData = () => {
-    Alert.alert(
-      "Import Data",
-      "This feature would allow importing expense data from CSV. Not implemented for the hackathon.",
-      [{ text: "OK" }]
-    );
   };
 
   const handleResetData = async () => {
@@ -212,7 +343,6 @@ const SettingsScreen = () => {
     onPress: () => void,
     rightElement?: React.ReactNode
   ) => {
-    /* TODO fix type later */
     return (
       <TouchableOpacity style={styles.settingItem} onPress={onPress}>
         <View style={styles.settingLeft}>
@@ -333,8 +463,22 @@ const SettingsScreen = () => {
         {/* Data Management */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Data Management</Text>
-          {renderSettingsItem('download-outline', 'Export Data', handleExportData)}
-          {renderSettingsItem('cloud-upload-outline', 'Import Data', handleImportData)}
+          {renderSettingsItem(
+            'download-outline',
+            'Export Data',
+            handleExportData,
+            isExporting ? (
+              <ActivityIndicator size="small" color="#15E8FE" />
+            ) : undefined
+          )}
+          {renderSettingsItem(
+            'cloud-upload-outline',
+            'Import Data',
+            handleImportData,
+            isImporting ? (
+              <ActivityIndicator size="small" color="#15E8FE" />
+            ) : undefined
+          )}
           {renderSettingsItem(
             'trash-outline',
             'Reset All Data',

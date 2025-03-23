@@ -1,8 +1,21 @@
-// app/utils/exportUtils.ts
 import * as FileSystem from 'expo-file-system';
 import { Share, Platform, Alert } from 'react-native';
 import { formatFullDate } from './dateUtils';
-import type { Transaction, Category } from '../database/schema';
+import type { Transaction, Category, RecurringTransaction } from '../database/schema';
+import * as DocumentPicker from 'expo-document-picker';
+import {
+  addTransaction,
+  addRecurringTransaction,
+  getCategories,
+  resetDatabase
+} from '../database/database';
+
+export interface DatabaseExportData {
+  transactions: Transaction[];
+  categories: Category[];
+  recurringTransactions: RecurringTransaction[];
+  exportDate: string;
+}
 
 // Function to convert transactions data to CSV format
 export const transactionsToCSV = (
@@ -246,10 +259,201 @@ export const exportFinancialReport = async (
   }
 };
 
+/**
+ * Export complete database data to a JSON file
+ */
+export const exportDatabaseData = async (
+  transactions: Transaction[],
+  categories: Category[],
+  recurringTransactions: RecurringTransaction[]
+): Promise<void> => {
+  try {
+    // Create the export data structure
+    const exportData: DatabaseExportData = {
+      transactions,
+      categories,
+      recurringTransactions,
+      exportDate: new Date().toISOString()
+    };
+
+    // Convert to JSON string
+    const jsonData = JSON.stringify(exportData, null, 2);
+
+    // Generate a filename with timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+    const fileName = `expensify_backup_${timestamp}.json`;
+
+    // Create the file path in app's document directory
+    const filePath = `${FileSystem.documentDirectory}${fileName}`;
+
+    // Write the JSON data to the file
+    await FileSystem.writeAsStringAsync(filePath, jsonData, {
+      encoding: FileSystem.EncodingType.UTF8
+    });
+
+    // Share the file
+    if (Platform.OS === 'ios') {
+      await Share.share({
+        url: filePath,
+        title: 'Expensify Database Backup'
+      });
+    } else {
+      // For Android, we need to use a content URI
+      const fileUri = await FileSystem.getContentUriAsync(filePath);
+      await Share.share({
+        url: fileUri,
+        title: 'Expensify Database Backup'
+      });
+    }
+
+    Alert.alert(
+      "Export Successful",
+      "Your data has been exported successfully. You can save this file for backup purposes."
+    );
+
+    return;
+  } catch (error) {
+    console.error('Error exporting database data:', error);
+    Alert.alert(
+      'Export Failed',
+      'There was an error exporting your data. Please try again.'
+    );
+    throw error;
+  }
+};
+
+/**
+ * Import database data from a JSON file
+ */
+export const importDatabaseData = async (): Promise<{
+  success: boolean,
+  message: string,
+  stats?: {
+    transactions: number,
+    categories: number,
+    recurringTransactions: number
+  }
+}> => {
+  try {
+    // Use document picker to select a file
+    const result = await DocumentPicker.getDocumentAsync({
+      type: 'application/json',
+      copyToCacheDirectory: true
+    });
+
+    if (result.canceled) {
+      return {
+        success: false,
+        message: 'Import canceled.'
+      };
+    }
+
+    // Check if we have the file URI
+    if (!result.assets || !result.assets[0] || !result.assets[0].uri) {
+      return {
+        success: false,
+        message: 'Could not access the selected file.'
+      };
+    }
+
+    const fileUri = result.assets[0].uri;
+
+    // Read the file content
+    const fileContent = await FileSystem.readAsStringAsync(fileUri);
+
+    // Parse the JSON data
+    const importData = JSON.parse(fileContent) as DatabaseExportData;
+
+    // Validate the data structure
+    if (!validateImportData(importData)) {
+      return {
+        success: false,
+        message: 'The selected file does not contain valid Expensify backup data.'
+      };
+    }
+
+    // Get existing categories to check if we need to add them
+    const existingCategories = await getCategories();
+    const existingCategoryIds = new Set(existingCategories.map(c => c.id));
+
+    // Reset the database first
+    await resetDatabase();
+
+    // Import transactions
+    for (const transaction of importData.transactions) {
+      await addTransaction({
+        amount: transaction.amount,
+        category: transaction.category,
+        date: transaction.date,
+        note: transaction.note,
+        isIncome: transaction.isIncome
+      });
+    }
+
+    // Import recurring transactions
+    for (const recurringTx of importData.recurringTransactions) {
+      // We need to format the data to match what addRecurringTransaction expects
+      const { id, lastProcessed, nextDue, ...txData } = recurringTx;
+      await addRecurringTransaction(txData);
+    }
+
+    return {
+      success: true,
+      message: 'Data imported successfully.',
+      stats: {
+        transactions: importData.transactions.length,
+        categories: importData.categories.length,
+        recurringTransactions: importData.recurringTransactions.length
+      }
+    };
+  } catch (error) {
+    console.error('Error importing database data:', error);
+    return {
+      success: false,
+      message: `Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    };
+  }
+};
+
+/**
+ * Validate the imported data structure
+ */
+
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+const  validateImportData = (data: any): data is DatabaseExportData => {
+  // Basic structure validation
+  if (!data || typeof data !== 'object') return false;
+
+  // Check required properties
+  if (!Array.isArray(data.transactions) ||
+      !Array.isArray(data.categories) ||
+      !Array.isArray(data.recurringTransactions) ||
+      typeof data.exportDate !== 'string') {
+    return false;
+  }
+
+  // Check a sample transaction for structure
+  if (data.transactions.length > 0) {
+    const sampleTx = data.transactions[0];
+    if (typeof sampleTx.id !== 'string' ||
+        typeof sampleTx.amount !== 'number' ||
+        typeof sampleTx.category !== 'string' ||
+        typeof sampleTx.date !== 'string' ||
+        typeof sampleTx.isIncome !== 'boolean') {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+
 export default {
   transactionsToCSV,
   exportToCSV,
   exportPeriodData,
   exportFinancialReport,
-  generateFinancialReport
+  generateFinancialReport,
+  exportDatabaseData,
+  importDatabaseData
 };
