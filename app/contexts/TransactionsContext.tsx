@@ -16,7 +16,7 @@ import {
   getNetIncome
 } from '../database/database';
 import type { Transaction, Category } from '../database/schema';
-import { getCurrentYear } from '../utils/dateUtils';
+import { getCurrentYear, getISODate } from '../utils/dateUtils';
 import { usePeriod } from './PeriodContext';
 
 interface TransactionsContextType {
@@ -133,18 +133,60 @@ export const TransactionsProvider: React.FC<{children: React.ReactNode}> = ({ ch
 
   const loadPeriodData = async () => {
     try {
+      // Get current period transactions for the monthly view
       const periodTransactions = await getTransactionsByDateRange(startDate, endDate);
       const sortedTransactions = [...periodTransactions].sort((a, b) =>
         new Date(b.date).getTime() - new Date(a.date).getTime()
       );
-
       setCurrentPeriodTransactions(sortedTransactions);
+
+      // Calculate monthly totals for the selected period only
+      const periodExpenses = periodTransactions
+        .filter(tx => !tx.isIncome)
+        .reduce((sum, tx) => sum + tx.amount, 0);
+
+      const periodIncomes = periodTransactions
+        .filter(tx => tx.isIncome)
+        .reduce((sum, tx) => sum + tx.amount, 0);
+
+      // For cumulative balance, get ALL transactions up to the current date
+      const currentDate = new Date();
+      const formattedCurrentDate = getISODate(currentDate);
+
+      const allTransactionsToDate = await getTransactionsByDateRange("1970-01-01", formattedCurrentDate);
+
+      const totalExpenses = allTransactionsToDate
+        .filter(tx => !tx.isIncome)
+        .reduce((sum, tx) => sum + tx.amount, 0);
+
+      const totalIncomes = allTransactionsToDate
+        .filter(tx => tx.isIncome)
+        .reduce((sum, tx) => sum + tx.amount, 0);
+
+      const cumulativeNet = totalIncomes - totalExpenses;
+
+      // Update states
+      setMonthlyTotal({
+        expenses: periodExpenses,   // Expenses for the selected month only
+        incomes: periodIncomes,     // Income for the selected month only
+        net: cumulativeNet          // Cumulative balance up to today
+      });
+
+      // Also load category totals for the period
+      const expenseTotals = await getTotalByCategory(startDate, endDate, 'expense');
+      const incomeTotals = await getTotalByCategory(startDate, endDate, 'income');
+
+      setCategoryTotals({
+        expenses: expenseTotals,
+        incomes: incomeTotals
+      });
+
       setIsLoading(false);
     } catch (error) {
       console.error('Error loading period data:', error);
       setIsLoading(false);
     }
-   };
+  };
 
   const refreshData = async () => {
     try {

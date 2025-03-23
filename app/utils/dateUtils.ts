@@ -16,7 +16,13 @@ export const formatFullDate = (dateString: string): string => {
 };
 
 export const getISODate = (date: Date): string => {
-  return date.toISOString().split('T')[0];
+  // Get year, month, and day in the device's local timezone
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Months are 0-indexed
+  const day = date.getDate().toString().padStart(2, '0');
+
+  // Format as YYYY-MM-DD
+  return `${year}-${month}-${day}`;
 };
 
 export const getCurrentMonthRange = (): { startDate: string; endDate: string } => {
