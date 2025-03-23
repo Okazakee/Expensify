@@ -9,7 +9,7 @@ const ONBOARDING_COMPLETED_KEY = '@expensify_onboarding_completed';
 export const isOnboardingCompleted = async (): Promise<boolean> => {
   try {
     const value = await AsyncStorage.getItem(ONBOARDING_COMPLETED_KEY);
-    return value === 'false'; /* TODO REVERT BACK */
+    return value === 'true';
   } catch (error) {
     console.error('Error getting onboarding status:', error);
     return false;

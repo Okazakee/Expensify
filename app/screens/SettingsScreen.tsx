@@ -86,16 +86,6 @@ const SettingsScreen = () => {
     }
   };
 
-  const toggleDarkMode = () => {
-    // In a real app, we would handle theme switching here
-    // For this hackathon, we're keeping it dark theme only
-    Alert.alert(
-      "Dark Mode Only",
-      "This app is designed with a dark theme for the retrofuturism aesthetic. Light mode is not available in this version.",
-      [{ text: "OK" }]
-    );
-  };
-
   const toggleNotifications = () => {
     setNotifications(!notifications);
   };
@@ -378,22 +368,6 @@ const SettingsScreen = () => {
 
       {/* Wrap the content in a ScrollView */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Appearance */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Appearance</Text>
-          {renderSettingsItem(
-            'moon',
-            'Dark Mode',
-            toggleDarkMode,
-            <Switch
-              value={darkMode}
-              onValueChange={toggleDarkMode}
-              trackColor={{ false: '#3e3e3e', true: 'rgba(80, 171, 227, 0.3)' }}
-              thumbColor={darkMode ? '#15E8FE' : '#f4f3f4'}
-              ios_backgroundColor="#3e3e3e"
-            />
-          )}
-        </View>
 
         {/* Preferences */}
         <View style={styles.section}>
