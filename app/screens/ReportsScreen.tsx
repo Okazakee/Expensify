@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from 'react';
+import type React from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { PieChart, LineChart } from 'react-native-chart-kit';
 
 import { useTransactions } from '../contexts/TransactionsContext';
-import { usePeriod } from '../contexts/PeriodContext'; // Add this import
+import { usePeriod } from '../contexts/PeriodContext';
 import { formatCurrency } from '../utils/currencyUtils';
 import { getMonthName } from '../utils/dateUtils';
 import { exportFinancialReport } from '../utils/exportUtils';
@@ -30,66 +31,115 @@ const ReportsScreen = () => {
     monthlyTotal,
     isLoading,
     refreshData,
-    currentPeriodTransactions // Add this to destructuring
+    currentPeriodTransactions
   } = useTransactions();
-
-  // Add this to get the current period info
   const { selectedMonthName, selectedYear } = usePeriod();
 
   const [refreshing, setRefreshing] = useState(false);
   const [showExpenses, setShowExpenses] = useState(true);
   const [showIncomes, setShowIncomes] = useState(true);
+  const [expenseChartError, setExpenseChartError] = useState(false);
+  const [incomeChartError, setIncomeChartError] = useState(false);
+  const [trendChartError, setTrendChartError] = useState(false);
+
+  // Debug logging for production build troubleshooting
+  useEffect(() => {
+    console.log('ReportsScreen loaded, data:', {
+      expensesCategories: categoryTotals.expenses.length,
+      incomeCategories: categoryTotals.incomes.length,
+      monthlyExpenses: monthlyData.expenses.length,
+      monthlyIncomes: monthlyData.incomes.length
+    });
+  }, [categoryTotals, monthlyData]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refreshData();
-    setRefreshing(false);
+    try {
+      await refreshData();
+      // Reset chart errors on refresh
+      setExpenseChartError(false);
+      setIncomeChartError(false);
+      setTrendChartError(false);
+    } catch (error) {
+      console.error('Refresh error:', error);
+    } finally {
+      setRefreshing(false);
+    }
   }, [refreshData]);
 
-  // Prepare category data for pie charts
-  const expensesPieChartData = categoryTotals.expenses.map(item => {
-    const category = categories.find(c => c.id === item.categoryId) || {
-      id: 'uncategorized',
-      name: 'Uncategorized',
-      color: '#9CA3AF',
-      icon: 'help-circle'
-    };
-    return {
-      name: category.name,
-      amount: item.total,
-      color: category.color,
-      legendFontColor: '#FFFFFF',
-      legendFontSize: 12
-    };
-  }).sort((a, b) => b.amount - a.amount);
+  // Prepare category data for pie charts with safety checks
+  const expensesPieChartData = categoryTotals.expenses
+    .filter(item => item && typeof item.total === 'number' && !Number.isNaN(item.total) && item.total > 0)
+    .map(item => {
+      const category = categories.find(c => c.id === item.categoryId) || {
+        id: 'uncategorized',
+        name: 'Uncategorized',
+        color: '#9CA3AF',
+        icon: 'help-circle'
+      };
+      return {
+        name: category.name,
+        amount: item.total,
+        color: category.color,
+        legendFontColor: '#FFFFFF',
+        legendFontSize: 12
+      };
+    }).sort((a, b) => b.amount - a.amount);
 
-  const incomesPieChartData = categoryTotals.incomes.map(item => {
-    const category = categories.find(c => c.id === item.categoryId) || {
-      id: 'uncategorized',
-      name: 'Uncategorized',
-      color: '#9CA3AF',
-      icon: 'help-circle'
-    };
-    return {
-      name: category.name,
-      amount: item.total,
-      color: category.color,
-      legendFontColor: '#FFFFFF',
-      legendFontSize: 12
-    };
-  }).sort((a, b) => b.amount - a.amount);
+  const incomesPieChartData = categoryTotals.incomes
+    .filter(item => item && typeof item.total === 'number' && !Number.isNaN(item.total) && item.total > 0)
+    .map(item => {
+      const category = categories.find(c => c.id === item.categoryId) || {
+        id: 'uncategorized',
+        name: 'Uncategorized',
+        color: '#9CA3AF',
+        icon: 'help-circle'
+      };
+      return {
+        name: category.name,
+        amount: item.total,
+        color: category.color,
+        legendFontColor: '#FFFFFF',
+        legendFontSize: 12
+      };
+    }).sort((a, b) => b.amount - a.amount);
 
-  // Prepare monthly data for line charts
+  // Safely prepare line chart data
+  const validMonthlyExpenses = monthlyData.expenses
+    .filter(data => data && typeof data.month === 'number' && typeof data.total === 'number' && !Number.isNaN(data.total))
+    .sort((a, b) => a.month - b.month);
+
+  const validMonthlyIncomes = monthlyData.incomes
+    .filter(data => data && typeof data.month === 'number' && typeof data.total === 'number' && !Number.isNaN(data.total))
+    .sort((a, b) => a.month - b.month);
+
+  // Ensure we have labels even if no data
+  const monthLabels = validMonthlyExpenses.length > 0
+    ? validMonthlyExpenses.map(data => getMonthName(data.month).substring(0, 3))
+    : validMonthlyIncomes.length > 0
+      ? validMonthlyIncomes.map(data => getMonthName(data.month).substring(0, 3))
+      : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+
+  // Ensure we have data points even if empty
+  const expenseValues = validMonthlyExpenses.length > 0
+    ? validMonthlyExpenses.map(data => data.total)
+    : [0, 0, 0];
+
+  const incomeValues = validMonthlyIncomes.length > 0
+    ? validMonthlyIncomes.map(data => data.total)
+    : [0, 0, 0];
+
+  // Prepare line chart data with safety fallbacks
   const lineChartData = {
-    labels: monthlyData.expenses.map(data => getMonthName(data.month).substring(0, 3)),
+    labels: monthLabels.length > 0 ? monthLabels : ['Jan', 'Feb', 'Mar'],
     datasets: [
       {
-        data: monthlyData.expenses.map(data => data.total),
+        data: expenseValues.length > 0 ? expenseValues : [0, 0, 0],
         color: () => '#FF6B6B', // Red for expenses
         strokeWidth: 2
       },
       {
-        data: monthlyData.incomes.map(data => data.total),
+        data: incomeValues.length > 0 ? incomeValues : [0, 0, 0],
         color: () => '#4CAF50', // Green for incomes
         strokeWidth: 2
       }
@@ -113,17 +163,117 @@ const ReportsScreen = () => {
     }
   };
 
+  // Render expense chart with error handling
+  const renderExpensePieChart = () => {
+    if (expenseChartError) {
+      return <Text style={styles.errorText}>Unable to display expense chart</Text>;
+    }
+
+    if (expensesPieChartData.length === 0) {
+      return <Text style={styles.emptyText}>No expense data available</Text>;
+    }
+
+    try {
+      return (
+        <View style={styles.chartContainer}>
+          <PieChart
+            data={expensesPieChartData}
+            width={width - 32}
+            height={200}
+            chartConfig={chartConfig}
+            accessor="amount"
+            backgroundColor="transparent"
+            paddingLeft="15"
+            absolute
+          />
+        </View>
+      );
+    } catch (error) {
+      console.error('Error rendering expense chart:', error);
+      setExpenseChartError(true);
+      return <Text style={styles.errorText}>Error rendering expense chart</Text>;
+    }
+  };
+
+  // Render income chart with error handling
+  const renderIncomePieChart = () => {
+    if (incomeChartError) {
+      return <Text style={styles.errorText}>Unable to display income chart</Text>;
+    }
+
+    if (incomesPieChartData.length === 0) {
+      return <Text style={styles.emptyText}>No income data available</Text>;
+    }
+
+    try {
+      return (
+        <View style={styles.chartContainer}>
+          <PieChart
+            data={incomesPieChartData}
+            width={width - 32}
+            height={200}
+            chartConfig={chartConfig}
+            accessor="amount"
+            backgroundColor="transparent"
+            paddingLeft="15"
+            absolute
+          />
+        </View>
+      );
+    } catch (error) {
+      console.error('Error rendering income chart:', error);
+      setIncomeChartError(true);
+      return <Text style={styles.errorText}>Error rendering income chart</Text>;
+    }
+  };
+
+  // Render trend chart with error handling
+  const renderTrendChart = () => {
+    if (trendChartError) {
+      return <Text style={styles.errorText}>Unable to display trend chart</Text>;
+    }
+
+    if ((validMonthlyExpenses.length === 0 && validMonthlyIncomes.length === 0)) {
+      return <Text style={styles.emptyText}>No monthly trend data available</Text>;
+    }
+
+    try {
+      return (
+        <View style={styles.chartContainer}>
+          <LineChart
+            data={lineChartData}
+            width={width - 32}
+            height={220}
+            chartConfig={chartConfig}
+            bezier
+            style={{
+              marginVertical: 8,
+              borderRadius: 16
+            }}
+            fromZero
+          />
+        </View>
+      );
+    } catch (error) {
+      console.error('Error rendering trend chart:', error);
+      setTrendChartError(true);
+      return <Text style={styles.errorText}>Error rendering trend chart</Text>;
+    }
+  };
+
+  // Safely render category breakdown
   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  const renderCategoryBreakdown = (data: any[], total: number, type: 'expense' | 'income') => {
+    const renderCategoryBreakdown = (data: any[], total: number, type: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | null | undefined) => {
     if (data.length === 0) {
       return (
         <Text style={styles.emptyText}>No {type} data available</Text>
       );
     }
 
-    return data.map((item, index) => (
-      // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-      <View key={`${type}-${index}`} style={styles.categoryBreakdownItem}>
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    return data.map((item: { color: any; name: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; amount: number; }, index: any) => (
+      <View key={`${type}-${// biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+index}`} style={styles.categoryBreakdownItem}>
         <View style={styles.categoryLabelContainer}>
           <View style={[styles.categoryColorDot, { backgroundColor: item.color }]} />
           <Text style={styles.categoryLabel}>{item.name}</Text>
@@ -131,7 +281,7 @@ const ReportsScreen = () => {
         <View style={styles.categoryAmountContainer}>
           <Text style={styles.categoryAmount}>{formatCurrency(item.amount)}</Text>
           <Text style={styles.categoryPercentage}>
-            {((item.amount / total) * 100).toFixed(1)}%
+            {((item.amount / (total || 1)) * 100).toFixed(1)}%
           </Text>
         </View>
       </View>
@@ -242,29 +392,11 @@ const ReportsScreen = () => {
             {showExpenses && (
               <View style={styles.sectionContainer}>
                 <Text style={styles.sectionTitle}>Expenses by Category</Text>
+                {renderExpensePieChart()}
 
-                {expensesPieChartData.length > 0 ? (
-                  <>
-                    <View style={styles.chartContainer}>
-                      <PieChart
-                        data={expensesPieChartData}
-                        width={width - 32}
-                        height={200}
-                        chartConfig={chartConfig}
-                        accessor="amount"
-                        backgroundColor="transparent"
-                        paddingLeft="15"
-                        absolute
-                      />
-                    </View>
-
-                    <View style={styles.categoryBreakdownContainer}>
-                      {renderCategoryBreakdown(expensesPieChartData, monthlyTotal.expenses, 'expense')}
-                    </View>
-                  </>
-                ) : (
-                  <Text style={styles.emptyText}>No expense data available</Text>
-                )}
+                <View style={styles.categoryBreakdownContainer}>
+                  {renderCategoryBreakdown(expensesPieChartData, monthlyTotal.expenses, 'expense')}
+                </View>
               </View>
             )}
 
@@ -272,54 +404,18 @@ const ReportsScreen = () => {
             {showIncomes && (
               <View style={styles.sectionContainer}>
                 <Text style={styles.sectionTitle}>Income by Category</Text>
+                {renderIncomePieChart()}
 
-                {incomesPieChartData.length > 0 ? (
-                  <>
-                    <View style={styles.chartContainer}>
-                      <PieChart
-                        data={incomesPieChartData}
-                        width={width - 32}
-                        height={200}
-                        chartConfig={chartConfig}
-                        accessor="amount"
-                        backgroundColor="transparent"
-                        paddingLeft="15"
-                        absolute
-                      />
-                    </View>
-
-                    <View style={styles.categoryBreakdownContainer}>
-                      {renderCategoryBreakdown(incomesPieChartData, monthlyTotal.incomes, 'income')}
-                    </View>
-                  </>
-                ) : (
-                  <Text style={styles.emptyText}>No income data available</Text>
-                )}
+                <View style={styles.categoryBreakdownContainer}>
+                  {renderCategoryBreakdown(incomesPieChartData, monthlyTotal.incomes, 'income')}
+                </View>
               </View>
             )}
 
             {/* Monthly Spending Trend */}
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>Monthly Trends</Text>
-
-              {(monthlyData.expenses.length > 0 || monthlyData.incomes.length > 0) ? (
-                <View style={styles.chartContainer}>
-                  <LineChart
-                    data={lineChartData}
-                    width={width - 32}
-                    height={220}
-                    chartConfig={chartConfig}
-                    bezier
-                    style={{
-                      marginVertical: 8,
-                      borderRadius: 16
-                    }}
-                    fromZero
-                  />
-                </View>
-              ) : (
-                <Text style={styles.emptyText}>No monthly trend data available</Text>
-              )}
+              {renderTrendChart()}
             </View>
 
             {/* Export Options */}
@@ -464,6 +560,12 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: 'rgba(255, 255, 255, 0.6)',
+    textAlign: 'center',
+    fontSize: 14,
+    marginVertical: 20,
+  },
+  errorText: {
+    color: '#FF6B6B',
     textAlign: 'center',
     fontSize: 14,
     marginVertical: 20,
