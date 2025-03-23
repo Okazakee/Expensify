@@ -3,6 +3,7 @@ import { Share, Platform, Alert } from 'react-native';
 import { formatFullDate } from './dateUtils';
 import type { Transaction, Category, RecurringTransaction } from '../database/schema';
 import * as DocumentPicker from 'expo-document-picker';
+import * as Sharing from 'expo-sharing';
 import {
   addTransaction,
   addRecurringTransaction,
@@ -234,17 +235,21 @@ export const exportFinancialReport = async (
     });
 
     // Share the file
-    if (Platform.OS === 'ios') {
-      await Share.share({
-        url: filePath,
-        title: 'Expensify Financial Report'
-      });
+    if (Platform.OS === 'android') {
+      try {
+        // For Android
+        await Sharing.shareAsync(filePath, {
+          mimeType: 'text/csv',
+          dialogTitle: 'Share Financial Report'
+        });
+      } catch (error) {
+        console.error('Error sharing file:', error);
+        throw error;
+      }
     } else {
-      // For Android, we need to use a content URI
-      const fileUri = await FileSystem.getContentUriAsync(filePath);
-      await Share.share({
-        url: fileUri,
-        title: 'Expensify Financial Report'
+      // For iOS
+      await Sharing.shareAsync(filePath, {
+        UTI: 'public.comma-separated-values-text'
       });
     }
 
@@ -292,17 +297,21 @@ export const exportDatabaseData = async (
     });
 
     // Share the file
-    if (Platform.OS === 'ios') {
-      await Share.share({
-        url: filePath,
-        title: 'Expensify Database Backup'
-      });
+    if (Platform.OS === 'android') {
+      try {
+        // For Android
+        await Sharing.shareAsync(filePath, {
+          mimeType: 'text/json',
+          dialogTitle: 'Share app data backup'
+        });
+      } catch (error) {
+        console.error('Error sharing file:', error);
+        throw error;
+      }
     } else {
-      // For Android, we need to use a content URI
-      const fileUri = await FileSystem.getContentUriAsync(filePath);
-      await Share.share({
-        url: fileUri,
-        title: 'Expensify Database Backup'
+      // For iOS
+      await Sharing.shareAsync(filePath, {
+        UTI: 'public.comma-separated-values-text'
       });
     }
 
