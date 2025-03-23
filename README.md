@@ -1,50 +1,130 @@
-# Welcome to your Expo app 👋
+# Expensify
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+<p align="center">
+  <img src="assets/images/icon.png" width="200" height="200" alt="Expensify App Icon"/>
+</p>
 
-## Get started
+<p align="center">
+  <b>A comprehensive personal finance tracker built with React Native & Expo</b>
+</p>
 
-1. Install dependencies
+## 📱 Overview
 
-   ```bash
-   npm install
-   ```
+Expensify is a feature-rich expense tracking app that helps you manage your finances with ease. Track expenses, set budgets, monitor recurring transactions, and visualize your spending patterns - all in one beautiful, intuitive interface.
 
-2. Start the app
+Built during the 24-hour hack.bs hackathon using React Native and Expo, Expensify combines powerful functionality with a sleek, modern design.
 
-   ```bash
-    npx expo start
-   ```
+## ✨ Features
 
-In the output, you'll find options to open the app in a
+- **Expense & Income Tracking**: Record and categorize your daily expenses and income
+- **Budget Management**: Set monthly budgets and monitor your spending
+- **Recurring Transactions**: Set up automatic recurring expenses and income
+- **Data Visualization**: Understand your spending habits with intuitive charts and graphs
+- **Multiple Currencies**: Support for various currencies including Bitcoin, USD, EUR, GBP, and more
+- **Data Import/Export**: Backup your data or transfer it between devices
+- **Biometric Security**: Protect your financial data with biometric authentication
+- **Dark Mode**: Easy on the eyes, perfect for night-time use
+- **Customizable Categories**: Create and customize expense categories
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## 🛠 Technologies Used
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- **React Native**: For cross-platform mobile development
+- **Expo**: To streamline development workflow
+- **SQLite**: For local data storage
+- **Context API**: For state management
+- **Recharts**: For data visualization
+- **Expo LocalAuthentication**: For biometric security
+- **Expo Notifications**: For transaction reminders
 
-## Get a fresh project
+## 📸 Screenshots
 
-When you're ready, run:
+*(Screenshots would be placed here)*
+
+## 📋 Getting Started
+
+### Prerequisites
+
+- Node.js (>= 14.0.0)
+- npm or yarn
+- Expo CLI
+
+### Installation
 
 ```bash
-npm run reset-project
+# Clone the repository
+git clone https://github.com/yourusername/expensify-app.git
+cd expensify-app
+
+# Install dependencies
+npm install
+
+# Start the development server
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### Running on a Device
 
-## Learn more
+- iOS: Scan the QR code in the Expo Go app
+- Android: Scan the QR code in the Expo Go app or use an emulator
 
-To learn more about developing your project with Expo, look at the following resources:
+## 🏗 Project Structure
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```
+app/
+├── (tabs)/           # Tab-based navigation components
+├── components/       # Reusable UI components
+├── contexts/         # React Context providers for state management
+├── database/         # SQLite database setup and operations
+├── hooks/            # Custom React hooks
+├── onboarding/       # Onboarding screens and flows
+├── screens/          # Main application screens
+├── transaction/      # Transaction detail and edit screens
+├── utils/            # Utility functions and helpers
+└── _layout.tsx       # Root layout component
+```
 
-## Join the community
+## 📊 Core Features Explained
 
-Join our community of developers creating universal apps.
+### Transaction Management
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Track both expenses and income with detailed categorization. Each transaction includes:
+- Amount
+- Category
+- Date
+- Optional notes
+- Transaction type (income/expense)
+
+### Budget System
+
+Set monthly budgets and track progress throughout the month with visual indicators.
+
+### Recurring Transactions
+
+Schedule recurring expenses or income with various recurrence patterns:
+- Weekly (specific day of the week)
+- Monthly (specific day of the month)
+- Yearly (specific day of a specific month)
+
+### Reports and Analytics
+
+Visualize your financial data with:
+- Pie charts for category breakdown
+- Line charts for monthly trends
+- Detailed category spending analysis
+
+### Data Backup
+
+Export your financial data as:
+- CSV files for easy analysis in spreadsheet software
+- Full database backups for safekeeping
+
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+---
+
+<p align="center">
+  Made with ❤️ during a 24-hour hackathon
+</p>
