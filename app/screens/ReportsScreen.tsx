@@ -15,8 +15,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { PieChart, LineChart } from 'react-native-chart-kit';
 
 import { useTransactions } from '../contexts/TransactionsContext';
+import { usePeriod } from '../contexts/PeriodContext'; // Add this import
 import { formatCurrency } from '../utils/currencyUtils';
 import { getMonthName } from '../utils/dateUtils';
+import { exportFinancialReport } from '../utils/exportUtils';
 
 const { width } = Dimensions.get('window');
 
@@ -27,8 +29,12 @@ const ReportsScreen = () => {
     categories,
     monthlyTotal,
     isLoading,
-    refreshData
+    refreshData,
+    currentPeriodTransactions // Add this to destructuring
   } = useTransactions();
+
+  // Add this to get the current period info
+  const { selectedMonthName, selectedYear } = usePeriod();
 
   const [refreshing, setRefreshing] = useState(false);
   const [showExpenses, setShowExpenses] = useState(true);
@@ -122,6 +128,22 @@ const ReportsScreen = () => {
     ));
   };
 
+  const handleExportReports = async () => {
+    try {
+      const periodName = `${selectedMonthName}_${selectedYear}`;
+      await exportFinancialReport(
+        currentPeriodTransactions,
+        categories,
+        monthlyData,
+        categoryTotals,
+        periodName
+      );
+    } catch (error) {
+      console.error('Error exporting reports:', error);
+      // Alert is already handled in the exportFinancialReport function
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen
@@ -150,7 +172,7 @@ const ReportsScreen = () => {
             thumbColor={showExpenses ? '#FF6B6B' : '#f4f3f4'}
           />
         </View>
-        
+
         <View style={styles.toggleOption}>
           <Text style={styles.toggleLabel}>Incomes</Text>
           <Switch
@@ -197,7 +219,7 @@ const ReportsScreen = () => {
                 <View style={styles.summaryItem}>
                   <Text style={styles.summaryLabel}>Net</Text>
                   <Text style={[
-                    styles.summaryValue, 
+                    styles.summaryValue,
                     monthlyTotal.net >= 0 ? styles.incomeValue : styles.expenseValue
                   ]}>
                     {formatCurrency(monthlyTotal.net)}
@@ -292,7 +314,7 @@ const ReportsScreen = () => {
 
             {/* Export Options */}
             <View style={styles.exportContainer}>
-              <TouchableOpacity style={styles.exportButton}>
+              <TouchableOpacity style={styles.exportButton} onPress={handleExportReports}>
                 <Ionicons name="download-outline" size={20} color="#FFFFFF" />
                 <Text style={styles.exportButtonText}>Export Reports</Text>
               </TouchableOpacity>

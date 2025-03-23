@@ -18,14 +18,27 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.okazakee.expensify"
+      "bundleIdentifier": "com.okazakee.expensify",
+      "infoPlist": {
+        "UIFileSharingEnabled": true,
+        "LSSupportsOpeningDocumentsInPlace": true,
+        "NSFaceIDUsageDescription": "This app uses Face ID to secure your financial data",
+        "NSPhotoLibraryAddUsageDescription": "Allow Expensify to save exported reports to your photo library",
+        "NSPhotoLibraryUsageDescription": "Allow Expensify to access your photos to attach receipts to expenses"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#121212"
       },
-      "package": "com.okazakee.expensify"
+      "package": "com.okazakee.expensify",
+      "permissions": [
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -41,6 +54,24 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#121212"
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "This app uses Face ID to secure your financial data"
+        }
+      ],
+      [
+        "expo-document-picker",
+        {
+          "iCloudContainerEnvironment": "Production"
+        }
+      ],
+      [
+        "expo-file-system",
+        {
+          "downloadDirectory": ".exports"
         }
       ]
     ],

@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,17 +8,22 @@ import {
   SafeAreaView,
   Switch,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useCurrency } from '../contexts/CurrencyContext';
 import CurrencySelector from '../components/CurrencySelector';
+import biometricUtils from '../utils/biometricUtils';
 
 const SettingsScreen = () => {
   const { currentCurrency } = useCurrency();
   const [darkMode, setDarkMode] = useState(true);
   const [notifications, setNotifications] = useState(true);
   const [showCurrencySelector, setShowCurrencySelector] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [biometricType, setBiometricType] = useState('Biometric');
 
   const toggleDarkMode = () => {
     // In a real app, we would handle theme switching here
@@ -103,6 +108,49 @@ const SettingsScreen = () => {
     );
   };
 
+  const toggleBiometricAuth = async (value: boolean) => {
+    if (value && biometricAvailable) {
+      // Verify with biometrics before enabling
+      const success = await biometricUtils.authenticateWithBiometrics(
+        `Authenticate to ${value ? 'enable' : 'disable'} ${biometricType} authentication`
+      );
+
+      if (success) {
+        await biometricUtils.setBiometricEnabled(value);
+        setBiometricEnabled(value);
+      } else {
+        // If authentication fails, revert the switch
+        setBiometricEnabled(!value);
+      }
+    } else {
+      // When disabling, no need to authenticate first
+      await biometricUtils.setBiometricEnabled(value);
+      setBiometricEnabled(value);
+    }
+  };
+
+  useEffect(() => {
+    const checkBiometrics = async () => {
+      try {
+        const available = await biometricUtils.isBiometricAvailable();
+        setBiometricAvailable(available);
+
+        if (available) {
+          const type = await biometricUtils.getBiometricType();
+          setBiometricType(type);
+
+          const enabled = await biometricUtils.isBiometricEnabled();
+          setBiometricEnabled(enabled);
+        }
+      } catch (error) {
+        console.error('Error checking biometrics:', error);
+      }
+    };
+
+    checkBiometrics();
+  }, []);
+
+
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen
@@ -120,7 +168,7 @@ const SettingsScreen = () => {
         <Text style={styles.headerTitle}>App Settings</Text>
       </View>
 
-      <View style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Appearance */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Appearance</Text>
@@ -164,6 +212,45 @@ const SettingsScreen = () => {
           )}
         </View>
 
+        {/* Security */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Security</Text>
+
+          {biometricAvailable ? (
+            renderSettingsItem(
+              biometricType === 'Face ID' ? 'scan-face' : 'finger-print',
+              `${biometricType} Authentication`,
+              () => toggleBiometricAuth(!biometricEnabled),
+              <Switch
+                value={biometricEnabled}
+                onValueChange={toggleBiometricAuth}
+                trackColor={{ false: '#3e3e3e', true: 'rgba(80, 171, 227, 0.3)' }}
+                thumbColor={biometricEnabled ? '#15E8FE' : '#f4f3f4'}
+                ios_backgroundColor="#3e3e3e"
+              />
+            )
+          ) : (
+            renderSettingsItem(
+              'lock-closed',
+              'Biometric Authentication',
+              () => Alert.alert('Not Available', 'Biometric authentication is not available on this device.'),
+              <Text style={styles.settingUnavailableText}>Unavailable</Text>
+            )
+          )}
+
+          {renderSettingsItem(
+            'shield-checkmark',
+            'Privacy Policy',
+            () => Alert.alert('Privacy Policy', 'View our privacy policy and data handling practices.'),
+          )}
+
+          {renderSettingsItem(
+            'document-text',
+            'Terms of Service',
+            () => Alert.alert('Terms of Service', 'View our terms of service.'),
+          )}
+        </View>
+
         {/* Data Management */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Data Management</Text>
@@ -178,8 +265,7 @@ const SettingsScreen = () => {
           {renderSettingsItem('information-circle-outline', 'About Expensify', handleAbout)}
         </View>
 
-        <Text style={styles.versionText}>Version 1.0.0</Text>
-      </View>
+      </ScrollView>
 
       <CurrencySelector
         isVisible={showCurrencySelector}
@@ -195,6 +281,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#121212',
     paddingTop: 60,
+    paddingBottom: 80,
   },
   headerContainer: {
     paddingHorizontal: 16,
@@ -254,11 +341,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.6)',
   },
-  versionText: {
-    textAlign: 'center',
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginTop: 24,
-    marginBottom: 16,
+  settingUnavailableText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.4)',
+    fontStyle: 'italic',
   },
 });
 

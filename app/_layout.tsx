@@ -10,6 +10,8 @@ import { initDatabase } from './database/database';
 import { BudgetProvider } from './contexts/BudgetContext';
 import { CurrencyProvider } from './contexts/CurrencyContext';
 import { RecurringTransactionsProvider } from './contexts/RecurringTransactionsContext';
+import BiometricAuthScreen from './components/BiometricAuthScreen';
+import biometricUtils from './utils/biometricUtils';
 
 // Prevent the splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -20,6 +22,36 @@ export default function RootLayout() {
   });
   const [isDbInitialized, setIsDbInitialized] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
+  const [showBiometricAuth, setShowBiometricAuth] = useState(true);
+  const [biometricCheckComplete, setBiometricCheckComplete] = useState(false);
+
+  const handleBiometricSuccess = () => {
+    setShowBiometricAuth(false);
+    setBiometricCheckComplete(true);
+  };
+
+  useEffect(() => {
+    const checkBiometricSettings = async () => {
+      try {
+        const available = await biometricUtils.isBiometricAvailable();
+        const enabled = available ? await biometricUtils.isBiometricEnabled() : false;
+
+        // Only show the auth screen if biometrics are available and enabled
+        setShowBiometricAuth(available && enabled);
+
+        // If biometrics aren't enabled, mark the check as complete
+        if (!available || !enabled) {
+          setBiometricCheckComplete(true);
+        }
+      } catch (error) {
+        console.error('Error checking biometric settings:', error);
+        setShowBiometricAuth(false);
+        setBiometricCheckComplete(true);
+      }
+    };
+
+    checkBiometricSettings();
+  }, []);
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -65,10 +97,15 @@ export default function RootLayout() {
             <RecurringTransactionsProvider>
               <StatusBar style="light" />
               <Slot />
+              {showBiometricAuth && (
+                <BiometricAuthScreen
+                  onSuccess={handleBiometricSuccess}
+                />
+              )}
             </RecurringTransactionsProvider>
           </TransactionsProvider>
         </BudgetProvider>
       </PeriodProvider>
     </CurrencyProvider>
-  );
-}
+  )
+};
