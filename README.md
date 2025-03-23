@@ -1,21 +1,17 @@
 # Expensify
-
 <p align="center">
   <img src="assets/images/icon.png" width="200" height="200" alt="Expensify App Icon"/>
 </p>
-
 <p align="center">
   <b>A comprehensive personal finance tracker built with React Native & Expo</b>
 </p>
 
 ## 📱 Overview
-
 Expensify is a feature-rich expense tracking app that helps you manage your finances with ease. Track expenses, set budgets, monitor recurring transactions, and visualize your spending patterns - all in one beautiful, intuitive interface.
 
 Built during the 24-hour hack.bs hackathon using React Native and Expo, Expensify combines powerful functionality with a sleek, modern design.
 
 ## ✨ Features
-
 - **Expense & Income Tracking**: Record and categorize your daily expenses and income
 - **Budget Management**: Set monthly budgets and monitor your spending
 - **Recurring Transactions**: Set up automatic recurring expenses and income
@@ -27,7 +23,6 @@ Built during the 24-hour hack.bs hackathon using React Native and Expo, Expensif
 - **Customizable Categories**: Create and customize expense categories
 
 ## 🛠 Technologies Used
-
 - **React Native**: For cross-platform mobile development
 - **Expo**: To streamline development workflow
 - **SQLite**: For local data storage
@@ -37,23 +32,23 @@ Built during the 24-hour hack.bs hackathon using React Native and Expo, Expensif
 - **Expo Notifications**: For transaction reminders
 
 ## 📸 Screenshots
-
-*(Screenshots would be placed here)*
+<div align="center" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 20px 0;">
+  <img src="https://github.com/user-attachments/assets/0e28ff4e-74e3-4b38-9938-b38aa9af95f0" width="180" style="border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" alt="Expensify Screenshot 1" />
+  <img src="https://github.com/user-attachments/assets/7234f6d1-32b2-46b1-b290-0c0fb60493d9" width="180" style="border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" alt="Expensify Screenshot 2" />
+  <img src="https://github.com/user-attachments/assets/ed902938-2353-47c2-b20c-db4d97c1c706" width="180" style="border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" alt="Expensify Screenshot 3" />
+</div>
 
 ## 📋 Getting Started
-
 ### Prerequisites
-
 - Node.js (>= 14.0.0)
 - npm or yarn
 - Expo CLI
 
 ### Installation
-
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/expensify-app.git
-cd expensify-app
+git clone https://github.com/okazakee/expensify.git
+cd expensify
 
 # Install dependencies
 npm install
@@ -63,12 +58,10 @@ npx expo start
 ```
 
 ### Running on a Device
-
 - iOS: Scan the QR code in the Expo Go app
 - Android: Scan the QR code in the Expo Go app or use an emulator
 
 ## 🏗 Project Structure
-
 ```
 app/
 ├── (tabs)/           # Tab-based navigation components
@@ -84,9 +77,7 @@ app/
 ```
 
 ## 📊 Core Features Explained
-
 ### Transaction Management
-
 Track both expenses and income with detailed categorization. Each transaction includes:
 - Amount
 - Category
@@ -95,36 +86,29 @@ Track both expenses and income with detailed categorization. Each transaction in
 - Transaction type (income/expense)
 
 ### Budget System
-
 Set monthly budgets and track progress throughout the month with visual indicators.
 
 ### Recurring Transactions
-
 Schedule recurring expenses or income with various recurrence patterns:
 - Weekly (specific day of the week)
 - Monthly (specific day of the month)
 - Yearly (specific day of a specific month)
 
 ### Reports and Analytics
-
 Visualize your financial data with:
 - Pie charts for category breakdown
 - Line charts for monthly trends
 - Detailed category spending analysis
 
 ### Data Backup
-
 Export your financial data as:
 - CSV files for easy analysis in spreadsheet software
 - Full database backups for safekeeping
 
-
 ## 🤝 Contributing
-
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 ---
-
 <p align="center">
-  Made with ❤️ during a 24-hour hackathon
+  Made with ❤️ during the <a href="https://hack.bs.it/">HACK.BS</a> 24-hour hackathon
 </p>
