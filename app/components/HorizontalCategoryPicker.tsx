@@ -4,7 +4,8 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView
+  ScrollView,
+  Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -23,34 +24,14 @@ const HorizontalCategoryPicker: React.FC<HorizontalCategoryPickerProps> = ({
   selectedCategoryId,
   onSelectCategory
 }) => {
-  const renderCategoryItem = (item: Category) => {
-    const isSelected = selectedCategoryId === item.id;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+  const handleEditCategories = useCallback(() => {
+    router.push('/screens/CategoryManagementScreen');
+  }, [router]);
 
-    return (
-      <TouchableOpacity
-        key={item.id}
-        style={[
-          styles.categoryItem,
-          isSelected && { borderColor: item.color, borderWidth: 2 }
-        ]}
-        onPress={() => onSelectCategory(item.id)}
-      >
-        <BlurView intensity={20} tint="dark" style={styles.blurContainer}>
-          <View style={[styles.iconContainer, { backgroundColor: item.color }]}>
-            {/* biome-ignore lint/suspicious/noExplicitAny: <explanation> */}
-            <Ionicons name={item.icon as any} size={22} color="#000000" />
-          </View>
-          <Text style={styles.categoryName}>{item.name}</Text>
-        </BlurView>
-      </TouchableOpacity>
-    );
-  };
-
-    // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
-    const handleEditCategories = useCallback(() => {
-      router.push('/screens/CategoryManagementScreen');
-    }, [router]);
-
+  // Debugging to check if categories are being passed correctly
+  console.log('Categories in HorizontalCategoryPicker:', categories.map(c => c.name));
+  console.log('Selected category ID:', selectedCategoryId);
 
   return (
     <View style={styles.container}>
@@ -63,13 +44,34 @@ const HorizontalCategoryPicker: React.FC<HorizontalCategoryPickerProps> = ({
           <Text style={styles.editButtonText}>Edit Categories</Text>
         </TouchableOpacity>
       </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoriesContainer}
-      >
-        {categories.map(category => renderCategoryItem(category))}
-      </ScrollView>
+      {categories.length === 0 ? (
+        <Text style={styles.emptyText}>No categories available</Text>
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriesContainer}
+        >
+          {categories.map(category => (
+            <TouchableOpacity
+              key={category.id}
+              style={[
+                styles.categoryItem,
+                selectedCategoryId === category.id && { borderColor: category.color, borderWidth: 2 }
+              ]}
+              onPress={() => onSelectCategory(category.id)}
+            >
+              <BlurView intensity={20} tint="dark" style={styles.blurContainer}>
+                <View style={[styles.iconContainer, { backgroundColor: category.color }]}>
+                  {/* biome-ignore lint/suspicious/noExplicitAny: <explanation> */}
+                  <Ionicons name={category.icon as any} size={22} color="#000000" />
+                </View>
+                <Text style={styles.categoryName}>{category.name}</Text>
+              </BlurView>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
     </View>
   );
 };
@@ -137,6 +139,13 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     textAlign: 'center',
   },
+  emptyText: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 14,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    padding: 20,
+  }
 });
 
 export default HorizontalCategoryPicker;

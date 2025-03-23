@@ -94,8 +94,8 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
       return false;
     }
 
-    if (!isIncome && !selectedCategory) {
-      Alert.alert('Category Required', 'Please select a category for this expense.');
+    if (!selectedCategory) {
+      Alert.alert('Category Required', 'Please select a category for this transaction.');
       return false;
     }
 
@@ -116,7 +116,7 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
         note,
         recurrenceType,
         isIncome,
-        category: isIncome ? '' : selectedCategory || '',
+        category: selectedCategory || '',
         active: true
       };
 
@@ -209,10 +209,8 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
           contentContainerStyle={styles.monthsContainer}>
           {months.map((month, index) => (
             <TouchableOpacity
-              key={`month-${
-                // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-                index
-              }`}
+              // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+              key={`month-${index}`}
               style={[
                 styles.monthOption,
                 selectedMonth === index + 1 && styles.selectedMonthOption
@@ -277,10 +275,8 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
           contentContainerStyle={styles.weekdaysContainer}>
           {weekdays.map((weekday, index) => (
             <TouchableOpacity
-              key={`weekday-${
-                // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-                index
-              }`}
+              // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+              key={`weekday-${index}`}
               style={[
                 styles.weekdayOption,
                 selectedWeekday === index + 1 && styles.selectedWeekdayOption
@@ -341,15 +337,14 @@ const TransactionEditor: React.FC<TransactionEditorProps> = ({
                 />
               </View>
 
-              {!isIncome && (
-                <View style={styles.categoryContainer}>
-                  <HorizontalCategoryPicker
-                    categories={categories}
-                    selectedCategoryId={selectedCategory}
-                    onSelectCategory={handleSelectCategory}
-                  />
-                </View>
-              )}
+              {/* Category Picker - Show for both income and expense */}
+              <View style={styles.categoryContainer}>
+                <HorizontalCategoryPicker
+                  categories={categories}
+                  selectedCategoryId={selectedCategory}
+                  onSelectCategory={handleSelectCategory}
+                />
+              </View>
 
               <View style={styles.recurrenceContainer}>
                 <Text style={styles.sectionLabel}>Recurrence</Text>
@@ -668,4 +663,4 @@ const styles = StyleSheet.create({
   }
 });
 
-export default TransactionEditor;
+export default TransactionEditor

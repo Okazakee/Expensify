@@ -41,3 +41,8 @@ app-example
 
 Dockerfile
 build.sh
+
+.deletelater
+submission
+
+*.apk
