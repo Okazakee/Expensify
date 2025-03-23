@@ -21,6 +21,7 @@ import { useRecurringTransactions } from '../contexts/RecurringTransactionsConte
 import { usePeriod } from '../contexts/PeriodContext';
 import { useBiometricAuth } from '../hooks/useBiometricAuth';
 import * as biometricUtils from '../utils/biometricUtils';
+import * as notificationUtils from '../utils/notificationUtils';
 import { resetDatabase } from '../database/database';
 import { resetAsyncStorage } from '../utils/storageUtils';
 import CurrencySelector from '../components/CurrencySelector';
@@ -42,6 +43,7 @@ const SettingsScreen = () => {
   const [isResetting, setIsResetting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [isTogglingNotifications, setIsTogglingNotifications] = useState(false);
 
   // Biometric state
   const [biometricAvailable, setBiometricAvailable] = useState(false);
@@ -70,6 +72,20 @@ const SettingsScreen = () => {
     checkBiometrics();
   }, []);
 
+  // Check notification settings
+  useEffect(() => {
+    const checkNotificationSettings = async () => {
+      try {
+        const enabled = await notificationUtils.areNotificationsEnabled();
+        setNotifications(enabled);
+      } catch (error) {
+        console.error('Error checking notification settings:', error);
+      }
+    };
+
+    checkNotificationSettings();
+  }, []);
+
   // Helper function to refresh all app data
   const refreshAppData = async () => {
     try {
@@ -86,8 +102,34 @@ const SettingsScreen = () => {
     }
   };
 
-  const toggleNotifications = () => {
-    setNotifications(!notifications);
+  const toggleNotifications = async () => {
+    try {
+      setIsTogglingNotifications(true);
+      const newValue = !notifications;
+
+      // Save the notification preference
+      await notificationUtils.setNotificationsEnabled(newValue);
+
+      // If enabling notifications, request permissions and schedule notifications
+      if (newValue) {
+        // Register for push notifications
+        await notificationUtils.registerForPushNotificationsAsync();
+
+        // Get recurring transactions and schedule notifications
+        const allTransactions = recurringTransactions;
+        await notificationUtils.checkAndScheduleNotifications(allTransactions);
+      } else {
+        // If disabling, cancel all notifications
+        await notificationUtils.cancelAllNotifications();
+      }
+
+      setNotifications(newValue);
+    } catch (error) {
+      console.error('Error toggling notifications:', error);
+      Alert.alert('Error', 'Failed to update notification settings.');
+    } finally {
+      setIsTogglingNotifications(false);
+    }
   };
 
   // New function to handle exporting data with biometric authentication
@@ -376,13 +418,18 @@ const SettingsScreen = () => {
             'notifications',
             'Notifications',
             toggleNotifications,
-            <Switch
-              value={notifications}
-              onValueChange={toggleNotifications}
-              trackColor={{ false: '#3e3e3e', true: 'rgba(80, 171, 227, 0.3)' }}
-              thumbColor={darkMode ? '#15E8FE' : '#f4f3f4'}
-              ios_backgroundColor="#3e3e3e"
-            />
+            isTogglingNotifications ? (
+              <ActivityIndicator size="small" color="#15E8FE" />
+            ) : (
+              <Switch
+                value={notifications}
+                onValueChange={toggleNotifications}
+                trackColor={{ false: '#3e3e3e', true: 'rgba(80, 171, 227, 0.3)' }}
+                thumbColor={notifications ? '#15E8FE' : '#f4f3f4'}
+                ios_backgroundColor="#3e3e3e"
+                disabled={isTogglingNotifications}
+              />
+            )
           )}
           {renderSettingsItem(
             'cash-outline',

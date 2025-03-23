@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Expensify by Okazakee",
-    "slug": "expenses-tracker-hackathon",
+    "name": "Expensify",
+    "slug": "expensify",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -24,7 +24,11 @@
         "LSSupportsOpeningDocumentsInPlace": true,
         "NSFaceIDUsageDescription": "This app uses Face ID to secure your financial data",
         "NSPhotoLibraryAddUsageDescription": "Allow Expensify to save exported reports to your photo library",
-        "NSPhotoLibraryUsageDescription": "Allow Expensify to access your photos to attach receipts to expenses"
+        "NSPhotoLibraryUsageDescription": "Allow Expensify to access your photos to attach receipts to expenses",
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
+        "NSUserNotificationsUsageDescription": "Expensify uses notifications to remind you about upcoming recurring transactions"
       }
     },
     "android": {
@@ -37,7 +41,16 @@
         "USE_BIOMETRIC",
         "USE_FINGERPRINT",
         "WRITE_EXTERNAL_STORAGE",
-        "READ_EXTERNAL_STORAGE"
+        "READ_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM",
+        "VIBRATE",
+        "POST_NOTIFICATIONS",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.INTERNET"
       ]
     },
     "web": {
@@ -73,11 +86,30 @@
         {
           "downloadDirectory": ".exports"
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#15E8FE",
+          "sounds": [
+            "./assets/sounds/notification.wav"
+          ]
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "tsconfigPaths": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "ab814a55-3dba-4556-899c-370ba12824c0"
+      }
+    },
+    "owner": "okazakee"
   }
 }

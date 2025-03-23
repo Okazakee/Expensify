@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import * as biometricUtils from '../utils/biometricUtils';
+import * as notificationUtils from '../utils/notificationUtils';
 import { setOnboardingCompleted } from '../utils/onboardingUtils';
 import * as Haptics from 'expo-haptics';
 import { useCurrency, AVAILABLE_CURRENCIES } from '../contexts/CurrencyContext';
@@ -25,6 +26,7 @@ export default function SecurityScreen() {
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [biometricType, setBiometricType] = useState('Biometric');
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
 
@@ -81,6 +83,33 @@ export default function SecurityScreen() {
       setBiometricEnabled(value);
     }
   };
+  
+  const toggleNotifications = async (value: boolean) => {
+    // Haptic feedback for switch toggle
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+      .catch(error => console.log('Haptics not supported', error));
+    
+    try {
+      // Save notification preference
+      await notificationUtils.setNotificationsEnabled(value);
+      setNotificationsEnabled(value);
+      
+      if (value) {
+        // Request notification permissions
+        await notificationUtils.registerForPushNotificationsAsync();
+        
+        // Success haptic feedback
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+          .catch(error => console.log('Haptics not supported', error));
+      }
+    } catch (error) {
+      console.error('Error toggling notifications:', error);
+      
+      // Error haptic feedback
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+        .catch(error => console.log('Haptics not supported', error));
+    }
+  };
 
   const handleComplete = async () => {
     try {
@@ -89,6 +118,14 @@ export default function SecurityScreen() {
       // Add haptic feedback for completion
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
         .catch(error => console.log('Haptics not supported', error));
+
+      // Save notification preferences again to make sure
+      await notificationUtils.setNotificationsEnabled(notificationsEnabled);
+      
+      // Request notification permissions if enabled
+      if (notificationsEnabled) {
+        await notificationUtils.registerForPushNotificationsAsync();
+      }
 
       // Mark onboarding as completed
       await setOnboardingCompleted();
@@ -185,6 +222,23 @@ export default function SecurityScreen() {
               </Text>
               <Ionicons name="chevron-down" size={16} color="#FFFFFF" style={styles.currencyIcon} />
             </TouchableOpacity>
+          </View>
+
+          {/* Notifications Option */}
+          <View style={styles.securityOption}>
+            <View style={styles.optionTextContainer}>
+              <Text style={styles.optionTitle}>Notifications</Text>
+              <Text style={styles.optionDescription}>
+                Get reminded about upcoming recurring transactions
+              </Text>
+            </View>
+            <Switch
+              value={notificationsEnabled}
+              onValueChange={toggleNotifications}
+              trackColor={{ false: '#3e3e3e', true: 'rgba(80, 171, 227, 0.3)' }}
+              thumbColor={notificationsEnabled ? '#15E8FE' : '#f4f3f4'}
+              ios_backgroundColor="#3e3e3e"
+            />
           </View>
 
           {/* Biometric Authentication Option */}

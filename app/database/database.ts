@@ -352,23 +352,48 @@ export const calculateNextDueDate = (
   transaction: Pick<RecurringTransaction, 'recurrenceType'> & Partial<RecurringTransaction>
 ): string => {
   const today = new Date();
-  const nextDue = new Date();
+  // Make a copy of today's date to avoid modifying it
+  const nextDue = new Date(today);
+
+  // Reset time components to ensure consistent date comparisons
+  nextDue.setHours(0, 0, 0, 0);
 
   if (transaction.recurrenceType === 'monthly') {
+    // Set to the specified day of current month
     nextDue.setDate(transaction.day || 1);
-    if (nextDue < today) nextDue.setMonth(nextDue.getMonth() + 1);
+
+    // If the calculated date is in the past, move to next month
+    if (nextDue < today) {
+      nextDue.setMonth(nextDue.getMonth() + 1);
+    }
   } else if (transaction.recurrenceType === 'yearly') {
+    // Set to the specified month and day
     nextDue.setMonth((transaction.month || 1) - 1);
     nextDue.setDate(transaction.day || 1);
-    if (nextDue < today) nextDue.setFullYear(nextDue.getFullYear() + 1);
+
+    // If the calculated date is in the past, move to next year
+    if (nextDue < today) {
+      nextDue.setFullYear(nextDue.getFullYear() + 1);
+    }
   } else if (transaction.recurrenceType === 'weekly') {
-    const currentDay = today.getDay();
-    const targetDay = transaction.weekday || 0;
-    let daysToAdd = targetDay - currentDay;
-    if (daysToAdd <= 0) daysToAdd += 7;
+    // Handle weekly recurrence
+    // In JavaScript: 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    // But in our app: 1 = Monday, ..., 7 = Sunday
+    // So we need to convert our weekday to JavaScript's weekday
+    const jsWeekday = transaction.weekday === 7 ? 0 : (transaction.weekday || 1);
+    const currentJsWeekday = today.getDay(); // 0-6 where 0 is Sunday
+
+    let daysToAdd = jsWeekday - currentJsWeekday;
+
+    // If the calculated day is today or in the past, move to next week
+    if (daysToAdd <= 0) {
+      daysToAdd += 7;
+    }
+
     nextDue.setDate(today.getDate() + daysToAdd);
   }
 
+  // Return ISO format date string (YYYY-MM-DD)
   return nextDue.toISOString().split('T')[0];
 };
 
