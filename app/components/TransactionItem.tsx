@@ -14,17 +14,19 @@ interface TransactionItemProps {
 const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, onPress }) => {
   const { categories } = useTransactions();
 
-  const category = categories.find(c => c.id === transaction.category);
+  // Special handling for Uncategorized category
+  const category = categories.find(c => c.id === transaction.category) || {
+    id: 'uncategorized',
+    name: 'Uncategorized',
+    color: '#9CA3AF',
+    icon: 'help-circle'
+  };
 
   const handlePress = () => {
     if (onPress) {
       onPress(transaction);
     }
   };
-
-  if (!category) {
-    return null;
-  }
 
   return (
     <TouchableOpacity style={styles.container} onPress={handlePress}>

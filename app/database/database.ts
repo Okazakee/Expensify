@@ -105,7 +105,15 @@ export const initDatabase = async (): Promise<void> => {
 
 export const getCategories = async (): Promise<Category[]> => {
   try {
-    return await db.getAllAsync<Category>('SELECT * FROM categories ORDER BY name');
+    const categories = await db.getAllAsync<Category>('SELECT * FROM categories ORDER BY name');
+
+    // Check if uncategorized has any transactions
+    const uncategorizedTransactions = await getTransactionsByCategory('uncategorized');
+
+    // If no uncategorized transactions, filter out uncategorized category
+    return uncategorizedTransactions.length > 0
+      ? categories
+      : categories.filter(c => c.id !== 'uncategorized');
   } catch (error) {
     console.error('Error fetching categories:', error);
     throw error;
@@ -572,14 +580,31 @@ export const updateCategory = async (category: Category): Promise<void> => {
 };
 
 export const deleteCategory = async (categoryId: string): Promise<void> => {
-  // Prevent deletion if category has associated transactions
-  const transactions = await getTransactionsByCategory(categoryId);
-  if (transactions.length > 0) {
-    throw new Error('Cannot delete category with existing transactions');
+  // Prevent deletion of uncategorized category
+  if (categoryId === 'uncategorized') {
+    throw new Error('Uncategorized category cannot be deleted');
   }
 
+  // Get transactions in this category
+  const transactions = await getTransactionsByCategory(categoryId);
+
+  // If transactions exist, move them to uncategorized
+  if (transactions.length > 0) {
+    await db.withTransactionAsync(async () => {
+      for (const transaction of transactions) {
+        await updateTransaction({
+          ...transaction,
+          category: 'uncategorized'
+        });
+      }
+    });
+  }
+
+  // Delete the category
   await db.runAsync('DELETE FROM categories WHERE id = ?', [categoryId]);
 };
+
+
 
 export default {
   initDatabase,

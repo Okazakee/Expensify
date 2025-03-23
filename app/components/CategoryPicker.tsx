@@ -28,8 +28,8 @@ const CategoryPicker: React.FC<CategoryPickerProps> = ({
 }) => {
   const router = useRouter();
 
-  // Don't filter categories based on transaction type - show all categories
-  const filteredCategories = categories;
+  // Filter out Uncategorized category from picker
+  const filteredCategories = categories.filter(category => category.id !== 'uncategorized');
 
   // Create rows of categories (2 per row)
   const renderCategories = () => {

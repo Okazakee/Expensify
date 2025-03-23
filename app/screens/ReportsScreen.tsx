@@ -48,22 +48,32 @@ const ReportsScreen = () => {
 
   // Prepare category data for pie charts
   const expensesPieChartData = categoryTotals.expenses.map(item => {
-    const category = categories.find(c => c.id === item.categoryId);
+    const category = categories.find(c => c.id === item.categoryId) || {
+      id: 'uncategorized',
+      name: 'Uncategorized',
+      color: '#9CA3AF',
+      icon: 'help-circle'
+    };
     return {
-      name: category ? category.name : 'Unknown',
+      name: category.name,
       amount: item.total,
-      color: category ? category.color : '#9CA3AF',
+      color: category.color,
       legendFontColor: '#FFFFFF',
       legendFontSize: 12
     };
   }).sort((a, b) => b.amount - a.amount);
 
   const incomesPieChartData = categoryTotals.incomes.map(item => {
-    const category = categories.find(c => c.id === item.categoryId);
+    const category = categories.find(c => c.id === item.categoryId) || {
+      id: 'uncategorized',
+      name: 'Uncategorized',
+      color: '#9CA3AF',
+      icon: 'help-circle'
+    };
     return {
-      name: category ? category.name : 'Unknown',
+      name: category.name,
       amount: item.total,
-      color: category ? category.color : '#9CA3AF',
+      color: category.color,
       legendFontColor: '#FFFFFF',
       legendFontSize: 12
     };

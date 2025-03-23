@@ -22,8 +22,15 @@ export default function TransactionDetailScreen() {
     const foundTransaction = transactions.find(t => t.id === id);
     if (foundTransaction) {
       setTransaction(foundTransaction);
+
+      // Find category, use default Uncategorized if not found
       const foundCategory = categories.find(c => c.id === foundTransaction.category);
-      setCategory(foundCategory);
+      setCategory(foundCategory || {
+        id: 'uncategorized',
+        name: 'Uncategorized',
+        color: '#9CA3AF',
+        icon: 'help-circle'
+      });
     }
   }, [id, transactions, categories]);
 
