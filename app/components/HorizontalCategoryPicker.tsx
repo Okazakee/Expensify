@@ -9,6 +9,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import type { Category } from '../database/schema';
+import { useCallback } from 'react';
+import { router } from 'expo-router';
 
 interface HorizontalCategoryPickerProps {
   categories: Category[];
@@ -44,9 +46,23 @@ const HorizontalCategoryPicker: React.FC<HorizontalCategoryPickerProps> = ({
     );
   };
 
+    // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+    const handleEditCategories = useCallback(() => {
+      router.push('/screens/CategoryManagementScreen');
+    }, [router]);
+
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Category</Text>
+      <View style={styles.headerContainer}>
+        <Text style={styles.title}>Category</Text>
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={handleEditCategories}
+        >
+          <Text style={styles.editButtonText}>Edit Categories</Text>
+        </TouchableOpacity>
+      </View>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -67,6 +83,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#ffffff',
     marginBottom: 10,
+  },
+  editButtonText: {
+    color: '#15E8FE',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  editButton: {
+    backgroundColor: 'rgba(21, 232, 254, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   categoriesContainer: {
     paddingBottom: 10,

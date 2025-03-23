@@ -64,13 +64,27 @@ export const RecurringTransactionsProvider: React.FC<{children: React.ReactNode}
       // Get the complete transaction with the calculated nextDue date
       const addedTransaction = (await getRecurringTransactions()).find(t => t.id === id);
 
-      // Schedule notification for the new transaction
+      // Only schedule notification if the transaction's due date is not today and within 30 days
       // biome-ignore lint/complexity/useOptionalChain: <explanation>
-      if (addedTransaction && addedTransaction.nextDue) {
-        await notificationUtils.scheduleTransactionNotification(
-          addedTransaction,
-          new Date(addedTransaction.nextDue)
-        );
+        if (addedTransaction && addedTransaction.nextDue) {
+          const dueDate = new Date(addedTransaction.nextDue);
+          const now = new Date();
+          now.setHours(0, 0, 0, 0); // Reset time to beginning of day for comparison
+
+          const thirtyDaysFromNow = new Date();
+          thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
+          // Calculate notification date (1 day before due date)
+          const notificationDate = new Date(dueDate);
+          notificationDate.setDate(notificationDate.getDate() - 1);
+
+        // Only schedule if notification should happen in the future
+        if (dueDate > now && dueDate <= thirtyDaysFromNow && notificationDate > now) {
+          await notificationUtils.scheduleTransactionNotification(
+            addedTransaction,
+            dueDate
+          );
+        }
       }
 
       await refreshTransactions();
@@ -136,7 +150,7 @@ export const RecurringTransactionsProvider: React.FC<{children: React.ReactNode}
       const today = new Date().toISOString().split('T')[0];
       for (const transaction of updatedTransactions) {
         if (transaction.lastProcessed === today) {
-          await notificationUtils.clearScheduledNotification(transaction.id);
+          await notificationUtils.cancelTransactionNotification(transaction.id);
         }
       }
 

@@ -83,28 +83,28 @@ export default function SecurityScreen() {
       setBiometricEnabled(value);
     }
   };
-  
+
   const toggleNotifications = async (value: boolean) => {
     // Haptic feedback for switch toggle
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
       .catch(error => console.log('Haptics not supported', error));
-    
+
     try {
       // Save notification preference
       await notificationUtils.setNotificationsEnabled(value);
       setNotificationsEnabled(value);
-      
+
       if (value) {
         // Request notification permissions
         await notificationUtils.registerForPushNotificationsAsync();
-        
+
         // Success haptic feedback
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
           .catch(error => console.log('Haptics not supported', error));
       }
     } catch (error) {
       console.error('Error toggling notifications:', error);
-      
+
       // Error haptic feedback
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
         .catch(error => console.log('Haptics not supported', error));
@@ -119,15 +119,30 @@ export default function SecurityScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
         .catch(error => console.log('Haptics not supported', error));
 
-      // Save notification preferences again to make sure
+      // Save notification preferences
       await notificationUtils.setNotificationsEnabled(notificationsEnabled);
-      
-      // Request notification permissions if enabled
+
+      // Request notification permissions if enabled, but don't wait for success
       if (notificationsEnabled) {
-        await notificationUtils.registerForPushNotificationsAsync();
+        try {
+          // Set a timeout for the notification permission request
+          const timeout = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Notification permission timeout')), 5000)
+          );
+
+          // Race between the actual registration and the timeout
+          await Promise.race([
+            notificationUtils.registerForPushNotificationsAsync(),
+            timeout
+          ]);
+        } catch (notifError) {
+          // Log but continue if there's an issue with notifications
+          console.warn('Notification registration issue:', notifError);
+          // We still want to continue with onboarding
+        }
       }
 
-      // Mark onboarding as completed
+      // Mark onboarding as completed regardless of notification permission
       await setOnboardingCompleted();
 
       // Navigate to the main app

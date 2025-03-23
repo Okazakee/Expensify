@@ -27,54 +27,60 @@ export const registerForPushNotificationsAsync = async (): Promise<string | null
   // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
   let token;
 
-  if (Platform.OS === 'android') {
-    // Set notification channel for Android
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'Default',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#15E8FE',
-    });
+  try {
+    if (Platform.OS === 'android') {
+      // Set notification channel for Android
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'Default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#15E8FE',
+      });
 
-    // Create a recurring transactions channel for Android
-    await Notifications.setNotificationChannelAsync('recurring-transactions', {
-      name: 'Recurring Transactions',
-      description: 'Notifications for upcoming recurring transactions',
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#15E8FE',
-    });
-  }
-
-  if (Device.isDevice) {
-    // Check if we already have permission
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-
-    // If we don't have permission, ask for it
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
+      // Create a recurring transactions channel for Android
+      await Notifications.setNotificationChannelAsync('recurring-transactions', {
+        name: 'Recurring Transactions',
+        description: 'Notifications for upcoming recurring transactions',
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#15E8FE',
+      });
     }
 
-    // If we still don't have permission, exit
-    if (finalStatus !== 'granted') {
-      console.log('Failed to get push token for push notification!');
-      return null;
+    if (Device.isDevice) {
+      // Check if we already have permission
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+
+      // If we don't have permission, ask for it
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+
+      // If we still don't have permission, acknowledge and continue
+      if (finalStatus !== 'granted') {
+        console.log('Notification permissions not granted');
+        return null;
+      }
+
+      // Get the token
+      token = (await Notifications.getExpoPushTokenAsync({
+        projectId: Constants.expoConfig?.extra?.eas?.projectId,
+      })).data;
+
+      // Store the token
+      await AsyncStorage.setItem(PUSH_TOKEN_KEY, token);
+    } else {
+      console.log('Must use physical device for Push Notifications');
     }
 
-    // Get the token
-    token = (await Notifications.getExpoPushTokenAsync({
-      projectId: Constants.expoConfig?.extra?.eas?.projectId,
-    })).data;
-
-    // Store the token
-    await AsyncStorage.setItem(PUSH_TOKEN_KEY, token);
-  } else {
-    console.log('Must use physical device for Push Notifications');
+    return token;
+  } catch (error) {
+    // Handle any errors gracefully
+    console.error('Error in registerForPushNotificationsAsync:', error);
+    return null;
   }
-
-  return token;
 };
 
 /**
