@@ -507,6 +507,28 @@ export const processRecurringTransactions = async (): Promise<void> => {
   }
 };
 
+export const resetDatabase = async (): Promise<void> => {
+  try {
+    await db.withTransactionAsync(async () => {
+      // Delete all transactions
+      await db.runAsync('DELETE FROM transactions');
+
+      // Delete all recurring transactions
+      await db.runAsync('DELETE FROM recurring_transactions');
+
+      // Keep default categories, but we could reset them here if needed
+      // To reset categories to defaults:
+      // await db.runAsync('DELETE FROM categories');
+      // For now we'll keep the categories
+    });
+
+    console.log('Database reset successfully');
+  } catch (error) {
+    console.error('Error resetting database:', error);
+    throw error;
+  }
+};
+
 export default {
   initDatabase,
   getCategories,
@@ -528,5 +550,6 @@ export default {
   getRecurringTransactionById,
   updateRecurringTransaction,
   deleteRecurringTransaction,
-  processRecurringTransactions
+  processRecurringTransactions,
+  resetDatabase
 };

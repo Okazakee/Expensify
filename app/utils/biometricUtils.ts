@@ -67,7 +67,9 @@ export const setBiometricEnabled = async (enabled: boolean): Promise<void> => {
  * Authenticate using biometrics
  * @param reason Prompt message to show to the user
  */
-export const authenticateWithBiometrics = async (reason: string = 'Authenticate to access your data'): Promise<boolean> => {
+export const authenticateWithBiometrics = async (
+  reason = 'Authenticate to access your data'
+): Promise<boolean> => {
   try {
     const result = await LocalAuthentication.authenticateAsync({
       promptMessage: reason,

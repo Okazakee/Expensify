@@ -25,7 +25,7 @@ export const AVAILABLE_CURRENCIES: Currency[] = [
   { code: 'BRL', symbol: 'R$', name: 'Brazilian Real' }
 ];
 
-// Default to USD
+// Default to BTC
 const DEFAULT_CURRENCY = AVAILABLE_CURRENCIES[0];
 
 interface CurrencyContextType {

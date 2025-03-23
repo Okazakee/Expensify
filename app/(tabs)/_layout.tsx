@@ -56,7 +56,14 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="reports"
         options={{
-          title: 'Report',
+          title: 'Reports',
+          tabBarLabel: 'Reports',
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '500',
+            width: '100%',
+            textAlign: 'center'
+          },
           tabBarIcon: ({ color }) => <TabBarIcon name="pie-chart" color={color} />,
         }}
       />
@@ -91,9 +98,9 @@ const styles = StyleSheet.create({
   },
   addButtonBackground: {
     backgroundColor: '#15E8FE',
-    borderRadius: 25,
-    width: 50,
-    height: 50,
+    borderRadius: 50,
+    width: 60,
+    height: 60,
     alignItems: 'center',
     justifyContent: 'center',
   },

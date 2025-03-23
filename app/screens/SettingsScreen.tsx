@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,21 +9,79 @@ import {
   Switch,
   Alert,
   ScrollView,
+  ActivityIndicator
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useCurrency } from '../contexts/CurrencyContext';
-import CurrencySelector from '../components/CurrencySelector';
-import biometricUtils from '../utils/biometricUtils';
 
+// Context and utilities
+import { useCurrency } from '../contexts/CurrencyContext';
+import { useTransactions } from '../contexts/TransactionsContext';
+import { useRecurringTransactions } from '../contexts/RecurringTransactionsContext';
+import { usePeriod } from '../contexts/PeriodContext';
+import { useBiometricAuth } from '../hooks/useBiometricAuth';
+import * as biometricUtils from '../utils/biometricUtils';
+import { resetDatabase } from '../database/database';
+import { resetAsyncStorage } from '../utils/storageUtils';
+import CurrencySelector from '../components/CurrencySelector';
+
+// Components
 const SettingsScreen = () => {
+  // Context hooks
   const { currentCurrency } = useCurrency();
+  const { refreshData } = useTransactions();
+  const { refreshTransactions } = useRecurringTransactions();
+  const { resetToCurrentMonth } = usePeriod();
+  const { authenticate } = useBiometricAuth();
+
+  // State variables
   const [darkMode, setDarkMode] = useState(true);
   const [notifications, setNotifications] = useState(true);
   const [showCurrencySelector, setShowCurrencySelector] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+
+  // Biometric state
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [biometricType, setBiometricType] = useState('Biometric');
+
+  // Check biometric availability
+  useEffect(() => {
+    const checkBiometrics = async () => {
+      try {
+        const available = await biometricUtils.isBiometricAvailable();
+        setBiometricAvailable(available);
+
+        if (available) {
+          const type = await biometricUtils.getBiometricType();
+          setBiometricType(type);
+
+          const enabled = await biometricUtils.isBiometricEnabled();
+          setBiometricEnabled(enabled);
+        }
+      } catch (error) {
+        console.error('Error checking biometrics:', error);
+      }
+    };
+
+    checkBiometrics();
+  }, []);
+
+  // Helper function to refresh all app data
+  const refreshAppData = async () => {
+    try {
+      // Reset to current month
+      resetToCurrentMonth();
+
+      // Refresh transactions data
+      await refreshData();
+
+      // Refresh recurring transactions
+      await refreshTransactions();
+    } catch (error) {
+      console.error('Error refreshing app data:', error);
+    }
+  };
 
   const toggleDarkMode = () => {
     // In a real app, we would handle theme switching here
@@ -59,7 +117,7 @@ const SettingsScreen = () => {
     );
   };
 
-  const handleResetData = () => {
+  const handleResetData = async () => {
     Alert.alert(
       "Reset All Data",
       "This will delete all your expenses and categories. This action cannot be undone. Are you sure?",
@@ -68,9 +126,50 @@ const SettingsScreen = () => {
         {
           text: "Reset",
           style: "destructive",
-          onPress: () => {
-            // In a real app, we would call a function to clear the database
-            Alert.alert("Data Reset", "All data has been reset.");
+          onPress: async () => {
+            // First authenticate with biometrics if available and enabled
+            await authenticate(
+              "Authenticate to reset all data",
+              async () => {
+                // This code runs after successful authentication
+                try {
+                  // Show loading indicator
+                  setIsResetting(true);
+
+                  // Reset database
+                  await resetDatabase();
+
+                  // Reset AsyncStorage but preserve biometric settings
+                  await resetAsyncStorage(['@expensify_biometric_enabled']);
+
+                  // Refresh all app data
+                  await refreshAppData();
+
+                  // Hide loading indicator
+                  setIsResetting(false);
+
+                  // Show success message
+                  Alert.alert(
+                    "Data Reset",
+                    "All transactions, budgets, and settings have been reset successfully."
+                  );
+                } catch (error) {
+                  console.error('Error resetting data:', error);
+                  setIsResetting(false);
+                  Alert.alert(
+                    "Reset Failed",
+                    "There was an error resetting your data. Please try again."
+                  );
+                }
+              },
+              () => {
+                // This runs if authentication fails
+                Alert.alert(
+                  "Authentication Failed",
+                  "For your security, data reset requires authentication."
+                );
+              }
+            );
           }
         }
       ]
@@ -80,9 +179,31 @@ const SettingsScreen = () => {
   const handleAbout = () => {
     Alert.alert(
       "About Expensify",
-      "Version 1.0.0\n\nA simple yet powerful expense tracking app created for the 24-hour hackathon. Built with React Native and Expo.",
+      "Version 1.0.0\n\nA simple yet powerful expense tracking app created for the 24-hour hack.bs hackathon. Built with React Native and Expo.",
       [{ text: "OK" }]
     );
+  };
+
+  // Add biometric toggle function
+  const toggleBiometricAuth = async (value: boolean) => {
+    if (value && biometricAvailable) {
+      // Verify with biometrics before enabling
+      const success = await biometricUtils.authenticateWithBiometrics(
+        `Authenticate to ${value ? 'enable' : 'disable'} ${biometricType} authentication`
+      );
+
+      if (success) {
+        await biometricUtils.setBiometricEnabled(value);
+        setBiometricEnabled(value);
+      } else {
+        // If authentication fails, revert the switch
+        setBiometricEnabled(!value);
+      }
+    } else {
+      // When disabling, no need to authenticate first
+      await biometricUtils.setBiometricEnabled(value);
+      setBiometricEnabled(value);
+    }
   };
 
   const renderSettingsItem = (
@@ -108,49 +229,6 @@ const SettingsScreen = () => {
     );
   };
 
-  const toggleBiometricAuth = async (value: boolean) => {
-    if (value && biometricAvailable) {
-      // Verify with biometrics before enabling
-      const success = await biometricUtils.authenticateWithBiometrics(
-        `Authenticate to ${value ? 'enable' : 'disable'} ${biometricType} authentication`
-      );
-
-      if (success) {
-        await biometricUtils.setBiometricEnabled(value);
-        setBiometricEnabled(value);
-      } else {
-        // If authentication fails, revert the switch
-        setBiometricEnabled(!value);
-      }
-    } else {
-      // When disabling, no need to authenticate first
-      await biometricUtils.setBiometricEnabled(value);
-      setBiometricEnabled(value);
-    }
-  };
-
-  useEffect(() => {
-    const checkBiometrics = async () => {
-      try {
-        const available = await biometricUtils.isBiometricAvailable();
-        setBiometricAvailable(available);
-
-        if (available) {
-          const type = await biometricUtils.getBiometricType();
-          setBiometricType(type);
-
-          const enabled = await biometricUtils.isBiometricEnabled();
-          setBiometricEnabled(enabled);
-        }
-      } catch (error) {
-        console.error('Error checking biometrics:', error);
-      }
-    };
-
-    checkBiometrics();
-  }, []);
-
-
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen
@@ -168,6 +246,7 @@ const SettingsScreen = () => {
         <Text style={styles.headerTitle}>App Settings</Text>
       </View>
 
+      {/* Wrap the content in a ScrollView */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Appearance */}
         <View style={styles.section}>
@@ -212,7 +291,7 @@ const SettingsScreen = () => {
           )}
         </View>
 
-        {/* Security */}
+        {/* Security Section with Biometrics */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Security</Text>
 
@@ -256,7 +335,14 @@ const SettingsScreen = () => {
           <Text style={styles.sectionTitle}>Data Management</Text>
           {renderSettingsItem('download-outline', 'Export Data', handleExportData)}
           {renderSettingsItem('cloud-upload-outline', 'Import Data', handleImportData)}
-          {renderSettingsItem('trash-outline', 'Reset All Data', handleResetData)}
+          {renderSettingsItem(
+            'trash-outline',
+            'Reset All Data',
+            handleResetData,
+            isResetting ? (
+              <ActivityIndicator size="small" color="#FF6B6B" />
+            ) : undefined
+          )}
         </View>
 
         {/* About */}
@@ -265,6 +351,7 @@ const SettingsScreen = () => {
           {renderSettingsItem('information-circle-outline', 'About Expensify', handleAbout)}
         </View>
 
+        <Text style={styles.versionText}>Version 1.0.0</Text>
       </ScrollView>
 
       <CurrencySelector
@@ -280,12 +367,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#121212',
-    paddingTop: 60,
-    paddingBottom: 80,
   },
   headerContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
+    paddingTop: 60, // Adjust this if needed based on your app's status bar
   },
   headerTitle: {
     fontSize: 24,
@@ -340,6 +426,12 @@ const styles = StyleSheet.create({
   currencyCode: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.6)',
+  },
+  versionText: {
+    textAlign: 'center',
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginTop: 24,
+    marginBottom: 64
   },
   settingUnavailableText: {
     fontSize: 14,
