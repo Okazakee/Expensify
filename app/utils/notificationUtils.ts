@@ -15,7 +15,7 @@ const SCHEDULED_NOTIFICATIONS_KEY = '@expensify_scheduled_notifications';
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
-    shouldPlaySound: true,
+    shouldPlaySound: false,
     shouldSetBadge: true,
   }),
 });
