@@ -15,6 +15,13 @@
         "resourceClass": "medium"
       }
     },
+    "preview-aab": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "app-bundle",
+        "resourceClass": "medium"
+      }
+    },
     "production": {
       "autoIncrement": true,
       "android": {
@@ -23,6 +30,17 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "../path/to/api-xxx-yyy-zzz.json",
+        "track": "internal"
+      }
+    },
+    "preview": {
+      "extends": "production",
+      "android": {
+        "track": "beta"
+      }
+    }
   }
 }

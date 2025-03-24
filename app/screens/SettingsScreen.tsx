@@ -11,7 +11,7 @@ import {
   ScrollView,
   ActivityIndicator
 } from 'react-native';
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 // Context and utilities
@@ -314,8 +314,17 @@ const SettingsScreen = () => {
                   // Show success message
                   Alert.alert(
                     "Data Reset",
-                    "All transactions, budgets, and settings have been reset successfully."
+                    "All transactions, budgets, and settings have been reset successfully.",
+                    [
+                      {
+                        onPress: () => {
+                          // Route the user to onboarding
+                          router.push('/onboarding')
+                        }
+                      }
+                    ]
                   );
+
                 } catch (error) {
                   console.error('Error resetting data:', error);
                   setIsResetting(false);
@@ -342,9 +351,13 @@ const SettingsScreen = () => {
   const handleAbout = () => {
     Alert.alert(
       "About Expensify",
-      "Version 1.0.0\n\nA simple yet powerful expense tracking app created for the 24-hour hack.bs hackathon. Built with React Native and Expo.",
+      "Expensify is a personal finance tracker that helps you manage expenses, set budgets, and track recurring transactions. All your financial data is stored securely on your device.",
       [{ text: "OK" }]
     );
+  };
+
+  const handlePrivacyPolicy = () => {
+    router.push('/screens/PrivacyPolicyScreen')
   };
 
   // Add biometric toggle function
@@ -471,14 +484,9 @@ const SettingsScreen = () => {
           {renderSettingsItem(
             'shield-checkmark',
             'Privacy Policy',
-            () => Alert.alert('Privacy Policy', 'View our privacy policy and data handling practices.'),
+            handlePrivacyPolicy,
           )}
 
-          {renderSettingsItem(
-            'document-text',
-            'Terms of Service',
-            () => Alert.alert('Terms of Service', 'View our terms of service.'),
-          )}
         </View>
 
         {/* Data Management */}
